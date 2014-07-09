@@ -10,20 +10,53 @@ import libsvm.svm_model;
 import libsvm.svm_problem;
 
 
+
+/**
+* <h1>SVMClassifier</h1>
+* La classe SVMClassifier si occupa della raccolta degli esempi,
+* del training del classificatore e della successiva valutazione 
+* 
+* @author Giordano
+* @version 1.0
+* 
+*/
 public class SVMClassifier {
 	String categoryName;
 
-	Vector<double[]> posVectors;
+	Vector<double[]> posVectors;  
 	Vector<double[]> negVectors;	
+	
+	/** presenceCategoryPerQuery: array di n stringhe nell'alfabeto {"0","1"},
+	 *  dove n è il numero di query che compongono il set considerato (o training o dev).
+	 *  L'i-esimo elemento dell'array è "1" se la i-esima query del set è taggata con la categoria in esame, "0" altrimenti.
+	*/ 
 	String[] presenceCategoryPerQuery;	
-	BinaryExampleGatherer trainGatherer = new BinaryExampleGatherer();;
+	
+	BinaryExampleGatherer trainGatherer = new BinaryExampleGatherer();
 	BinaryExampleGatherer testGatherer = new BinaryExampleGatherer();
 
+	
+	/**
+	 *  setType: specifica se i dati da raccogliere fanno parte del training o del development set
+	 */
 	public enum setType{
 		TRAINING,DEVELOPMENT
 	}
 	
 	
+	
+	/**
+	 * Raccoglie gli esempi dai file, inserendoli nel rispettivo gatherer a seconda del parametro specificato.
+	 * <p/>
+	 * Nei file di tipo "results*" sono presenti tante righe quante sono le query del rispettivo set; 
+	 * ogni riga del file identifica l'array di features di una specifica query nel formato "f1,f2,...fn" dove n è attualmente 123.
+	 * <p/>
+	 * Nei file di tipo "presence_cat-target*" sono presenti 2 righe per ogni categoria target (quindi in tutto ci sono 134 righe);
+	 * La prima di queste due righe identifica il nome della categoria, la seconda è, invece, nel formato "B1	B2		BN" dove N è la dimensione del rispettivo set;
+	 * il generico valore Bi è 1 se la i-esima query del set è taggata con la su detta categoria, 0 altrimenti.
+	 * 
+	 * @param T permette di identificare se si desidera prelevare gli esempi dal training set o dal development set.
+	 */
 	public void gatherData(setType T) throws IOException{
 		
 		
@@ -75,6 +108,11 @@ public class SVMClassifier {
 	}
 
 	
+	
+	/**
+	 * Questo metodo, ancora incompleto, permette di effettura la fase di learning e la successiva fase di valutazione che consente,
+	 * di valutare quale modello produce migliori risultati in termini di precision, recall e F1 per una specifica categoria.
+	 */
 	public void test() throws IOException{
 
 		Triple<svm_problem, double[], double[]> ftrsMinsMaxs = SupportSVM.getScaledTrainProblem( trainGatherer);
@@ -96,9 +134,9 @@ public class SVMClassifier {
 			System.out.printf("MACRO:  %.5f%%\t%.5f%%\t%.5f%%%n",
 					metrics.getMacroPrecision() * 100, metrics.getMacroRecall() * 100,
 					metrics.getMacroF1() * 100);
-			System.out.printf("MICRO:  %.5f%%\t%.5f%%\t%.5f%%%n",
-					metrics.getMicroPrecision() * 100, metrics.getMicroRecall() * 100,
-					metrics.getMicroF1() * 100);
+//			System.out.printf("MICRO:  %.5f%%\t%.5f%%\t%.5f%%%n",
+//					metrics.getMicroPrecision() * 100, metrics.getMicroRecall() * 100,
+//					metrics.getMicroF1() * 100);
 			
 		//	svm.svm_save_model("models/" + categoryName + ".model", model);
 		}
@@ -106,11 +144,18 @@ public class SVMClassifier {
 		
 	}
 	
+	
+	/**
+	 * @param categoryName nom della categoria target di cui si vuole generare il modello.
+	 */
 	public SVMClassifier(String categoryName){
 		this.categoryName=categoryName;
 	}
 	
 	
+	/**
+	 * @param args come input deve essere fornita la stringa che identifica la categoria target di cui si vuole generare il modello.
+	 */
 	public static void main(String[] args){
 		
 		if (args.length!=1) {
