@@ -60,7 +60,7 @@ public class SVMClassifier {
 	public void gatherData(setType T) throws IOException{
 		
 		
-		String featuresFile = (T == setType.TRAINING) ?"data/results_training.txt" : "data/results_validation.txt";
+		String featuresFile = (T == setType.TRAINING) ?"data/results_training_path.txt" : "data/results_validation_path.txt";
 		String presenceFile = (T == setType.TRAINING) ? "data/presence_cat-target_training.txt": "data/presence_cat-target_validation.txt";
 
 //		String featuresFile =  (T == setType.TRAINING) ? "C:/Users/giordano/Desktop/Python/results_taining.txt" : "C:/Users/giordano/Desktop/Python/results_validation.txt";
