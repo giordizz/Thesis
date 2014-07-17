@@ -63,14 +63,12 @@ public class SupportSVM {
 				trainProblem, mins, maxs);
 	}
 	
-	public static Vector<svm_problem> getScaledTestProblems(
+	public static svm_problem getScaledTestProblem(
 			Vector<Integer> pickedFtrsI, BinaryExampleGatherer testGatherer,
 			double[] mins, double[] maxs) {
-		Vector<svm_problem> testProblems = testGatherer
-				.generateLibSvmProblemOnePerInstance(pickedFtrsI);
-		for (svm_problem testProblem : testProblems)
-			LibSvmUtils.scaleProblem(testProblem, mins, maxs);
-		return testProblems;
+		svm_problem testProblem = testGatherer.generateLibSvmProblem();
+		LibSvmUtils.scaleProblem(testProblem, mins, maxs);
+		return testProblem;
 	}
 
 	
