@@ -11,6 +11,7 @@ import libsvm.svm_problem;
 
 
 
+
 /**
 * <h1>SVMClassifier</h1>
 * La classe SVMClassifier si occupa della raccolta degli esempi,
@@ -27,8 +28,8 @@ public class SVMClassifier {
 	Vector<double[]> negVectors;	
 	
 	/** presenceCategoryPerQuery: array di n stringhe nell'alfabeto {"0","1"},
-	 *  dove n è il numero di query che compongono il set considerato (o training o dev).
-	 *  L'i-esimo elemento dell'array è "1" se la i-esima query del set è taggata con la categoria in esame, "0" altrimenti.
+	 *  dove n ï¿½ il numero di query che compongono il set considerato (o training o dev).
+	 *  L'i-esimo elemento dell'array ï¿½ "1" se la i-esima query del set ï¿½ taggata con la categoria in esame, "0" altrimenti.
 	*/ 
 	String[] presenceCategoryPerQuery;	
 	
@@ -49,11 +50,11 @@ public class SVMClassifier {
 	 * Raccoglie gli esempi dai file, inserendoli nel rispettivo gatherer a seconda del parametro specificato.
 	 * <p/>
 	 * Nei file di tipo "results*" sono presenti tante righe quante sono le query del rispettivo set; 
-	 * ogni riga del file identifica l'array di features di una specifica query nel formato "f1,f2,...fn" dove n è attualmente 123.
+	 * ogni riga del file identifica l'array di features di una specifica query nel formato "f1,f2,...fn" dove n ï¿½ attualmente 123.
 	 * <p/>
 	 * Nei file di tipo "presence_cat-target*" sono presenti 2 righe per ogni categoria target (quindi in tutto ci sono 134 righe);
-	 * La prima di queste due righe identifica il nome della categoria, la seconda è, invece, nel formato "B1	B2		BN" dove N è la dimensione del rispettivo set;
-	 * il generico valore Bi è 1 se la i-esima query del set è taggata con la su detta categoria, 0 altrimenti.
+	 * La prima di queste due righe identifica il nome della categoria, la seconda ï¿½, invece, nel formato "B1	B2		BN" dove N ï¿½ la dimensione del rispettivo set;
+	 * il generico valore Bi ï¿½ 1 se la i-esima query del set ï¿½ taggata con la su detta categoria, 0 altrimenti.
 	 * 
 	 * @param T permette di identificare se si desidera prelevare gli esempi dal training set o dal development set.
 	 */
