@@ -1,3 +1,8 @@
+package it.giordizz.Thesis;
+
+import it.acubelab.batframework.utils.Pair;
+
+
 import java.util.Vector;
 
 import libsvm.svm;
@@ -28,8 +33,7 @@ public class SupportSVM {
 		return param;
 	}
 
-	public static svm_model trainModel(double wPos, double wNeg,
-			Vector<Integer> pickedFtrs, svm_problem trainProblem,double gamma, double C) {
+	public static svm_model trainModel(double wPos, double wNeg, svm_problem trainProblem,double gamma, double C) {
 		svm_parameter param = getParameters(wPos, wNeg, gamma, C);
 
 		String error_msg = svm.svm_check_parameter(trainProblem, param);
@@ -44,28 +48,27 @@ public class SupportSVM {
 	
 	
 
-	public static Triple<svm_problem, double[], double[]> getScaledTrainProblem( BinaryExampleGatherer gatherer) {
+	public static Triple<svm_problem, double[], double[]> getScaledProblem(svm_problem problem) {
 
 
-		svm_problem trainProblem = gatherer.generateLibSvmProblem();
+
 		// find ranges for all features of training set
-		Pair<double[], double[]> minsAndMaxs = LibSvmUtils.findRanges(trainProblem);
-
-		double[] mins = minsAndMaxs.first;
-		double[] maxs = minsAndMaxs.second;
-
-		// Generate training problem
-
-		// Scale training problem
-		LibSvmUtils.scaleProblem(trainProblem, mins, maxs);
+//		Pair<double[], double[]> minsAndMaxs = LibSvmUtils.findRanges(problem);
+//
+//		double[] mins = minsAndMaxs.first;
+//		double[] maxs = minsAndMaxs.second;
+//
+//
+//		LibSvmUtils.scaleProblem(problem, mins, maxs);
 
 		return new Triple<svm_problem, double[], double[]>(
-				trainProblem, mins, maxs);
+				problem, null, null);
 	}
 	
 	public static svm_problem getScaledTestProblem(
 			Vector<Integer> pickedFtrsI, BinaryExampleGatherer testGatherer,
 			double[] mins, double[] maxs) {
+		
 		svm_problem testProblem = testGatherer.generateLibSvmProblem();
 		LibSvmUtils.scaleProblem(testProblem, mins, maxs);
 		return testProblem;

@@ -1,4 +1,4 @@
-
+package it.giordizz.Thesis;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Vector;
