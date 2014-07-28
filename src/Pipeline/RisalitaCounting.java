@@ -1,3 +1,4 @@
+package it.giordizz.Thesis;
 
 
 import java.io.BufferedReader;
@@ -6,7 +7,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,10 +14,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
+
+import libsvm.svm_node;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -32,23 +33,24 @@ public class RisalitaCounting {
 	
 	int maxHeight;
 	HashSet<Integer> main_topic;
-	JSONArray json;
-	HashSet<Integer> intermediate_categories= new HashSet<Integer> ();
+	JSONArray jsonTraining;
+	JSONArray jsonValidation;
+	Vector<Integer> intermediate_categories= new Vector<Integer> ();
+	TreeSet<Integer> S ;
 	HashSet<String> queryNotTagged = new HashSet<String>();
 	String setName;
-	PrintWriter output;
+
 	int topK;
 	
-	RisalitaCounting(int height,String setName, int topK) throws FileNotFoundException, UnsupportedEncodingException{
+	RisalitaCounting(int height, int topK) throws FileNotFoundException, UnsupportedEncodingException{
 		maxHeight = height;
-		this.setName = setName;
 		this.topK = topK;
-		output = new PrintWriter("../Thesis/data/results_"+ setName  +".txt"  , "UTF-8");
+//		output = new PrintWriter("../Thesis/data/new8top"+topK+"/results_"+ setName  +".txt"  , "UTF-8");
 		Integer[] aux= new Integer[]{694871,4892515,694861,3103170,693800,751381,693555,1004110,1784082,8017451,691928,690747,692348,696603,691008,695027,42958664,691182,693708,696648};
 		main_topic = new HashSet<Integer>(Arrays.asList(aux));
 	}
 	
-	public void getStatus(int topK) throws IOException{
+	public void getStatus() throws IOException{
 		
 		GZIPInputStream	gzip1=null, gzip2=null, gzip3=null;
 		
@@ -108,7 +110,8 @@ public class RisalitaCounting {
 		
 		
 		
-		json= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/"+setName+"_set_tagged.JSON")));
+		jsonTraining= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/training_set_tagged.JSON")));
+		jsonValidation= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/validation_set_tagged.JSON")));
 		
 		
 		BufferedReader br4 = new BufferedReader(new FileReader("../Download/My_redirect_ID_2"));
@@ -128,6 +131,9 @@ public class RisalitaCounting {
 		     intermediate_categories.add(Integer.parseInt(line));
 		     			
 		br5.close();
+		
+		S = new TreeSet<Integer>();
+		
 		
 		BufferedReader br6 = new BufferedReader(new FileReader("query_not_tagged.txt"));
 		while( (line=br6.readLine())!=null) 
@@ -172,10 +178,10 @@ public class RisalitaCounting {
 	
 		for(Integer cat: categories) {
 
-			if (!main_topic.contains(cat))
+//			if (!main_topic.contains(cat))
 				toExplore.addAll(checkVisited(cat,visited));
 			
-			if (intermediate_categories.contains(cat)) {
+			if (S.contains(cat)) {
 //				TODO
 //				if (!result.contains(cat))
 					result.add(cat);
@@ -186,7 +192,7 @@ public class RisalitaCounting {
 	
 		
 		
-		return climb(toExplore,result,null,height+1);
+		return climb(toExplore,result,categories,height+1);
 		
 		
 		
@@ -247,99 +253,53 @@ public class RisalitaCounting {
 		
 	}	
 	
-	
-//	private void printResult(HashMap<String, Integer> result, float numOfEntity) {
-//		String aux="";
-//		boolean first=true;
-//		for (String speccat: intermediate_categories){
-//			Integer count =result.get(speccat);
-//			if (!first)
-//					aux+=",";
-//			else
-//				first=false;
-//			if (count==null)
-//					aux+="0";
-//			else {
-//				float norm = (float) count / 10;
-//				aux+=norm;
-//			}
-//				
-//		}
-//		
-//		System.out.println(aux);
-//		
-//	}
-	
-	private void printResult(HashMap<Integer, Integer> result) {
-		String aux="";
-		boolean first=true;
-		for (Integer speccat: intermediate_categories){
-			Integer ii = result.get(speccat);
-			if (!first)
-					aux+=",";
-			else
-				first=false;
-			if (ii==null)
-					aux+="0";
-			else
-				aux+=ii;
-		}
-		
-		System.out.println(aux);
-		
-	}
 
-	
-	private void writeResultOnFile(HashMap<Integer, Integer> result) {
-	
-		boolean first=true;
-		for (Integer speccat: intermediate_categories){
-			Integer ii = result.get(speccat);
-			if (!first)
-					output.append(",");
-			else
-				first=false;
-			if (ii==null)
-				output.append("0");
-			else
-				output.print(ii);
+	private void writeResultOnFile(HashMap<Integer, Integer> result1, HashMap<Integer, Integer> result2, int whichDataSet, SVMClassifier s) {
+		
+		
+		
+
+		Vector<svm_node> auxNodeVect = new Vector<svm_node>();
+		
+		int c=0;
+		for (Iterator<Integer> it = S.iterator(); it.hasNext(); c++ ) {
+			Integer ii = result1.get(it.next());
+			if (ii!=null){
+				
+				svm_node auxNode = new svm_node();
+				auxNode.index = c+1;
+				auxNode.value = ii;
+				auxNodeVect.add(auxNode);
+//					
+			}
 		}
-		output.println();
-		//System.out.println(aux);
+		
+		for (Iterator<Integer> it = S.iterator(); it.hasNext(); c++ ) {
+			Integer ii = result2.get(it.next());
+			if (ii!=null){
+				
+				svm_node auxNode = new svm_node();
+				auxNode.index = c+1;
+				auxNode.value = ii;
+				auxNodeVect.add(auxNode);
+//					
+			}
+		}
+		
+		
+		
+		svm_node[] nodeVect = new svm_node[auxNodeVect.size()];
+		for (int i=0; i< nodeVect.length; i++)
+			nodeVect[i] = auxNodeVect.elementAt(i);
+		
+		s.addExample(nodeVect, whichDataSet);
 		
 	}
-	private void writeResultOnFile(HashMap<Integer, Integer> result1, HashMap<Integer, Integer> result2) {
-		
-		boolean first=true;
-		for (Integer speccat: intermediate_categories){
-			Integer ii = result1.get(speccat);
-			if (!first)
-					output.append(",");
-			else
-				first=false;
-			if (ii==null)
-				output.append("0");
-			else
-				output.print(ii);
-		}
-		for (Integer speccat: intermediate_categories){
-			Integer ii = result2.get(speccat);
-			if (!first)
-					output.append(",");
-			else
-				first=false;
-			if (ii==null)
-				output.append("0");
-			else
-				output.print(ii);
-		}
-		output.println();
-		//System.out.println(aux);
-		
-	}
-	public void tagAll(){
+	public void tagAll(SVMClassifier s, int whichDataSet){
 		System.err.println("************** Start tagging! **************");
-		Iterator i =json.iterator();
+		
+		
+		Iterator i = (whichDataSet==0) ? jsonTraining.iterator() : jsonValidation.iterator();
 		int count=1;
 		
 		HashMap<Integer,Integer> result1 = new HashMap<Integer,Integer>(); 
@@ -406,7 +366,7 @@ public class RisalitaCounting {
 			//System.err.println("stampo i risultati");
 
 //			writeResultOnFile(result);
-			writeResultOnFile(result1, result2);
+			writeResultOnFile(result1, result2, whichDataSet, s);
 			
 			
 			
@@ -414,9 +374,10 @@ public class RisalitaCounting {
 		}
 		
 		
-		output.close();
+		
+		System.err.println("stop tagging");
 //		System.err.println("results written on  -> ../Thesis/data/results_"+ setName  +".txt");
-		System.err.println("results written on  -> ../Thesis/data/results_"+ setName  +".txt");
+//		System.err.println("results written on  -> ../Thesis/data/new8top"+topK+"/results_"+ setName  +".txt");
 	}
 	
 
@@ -445,46 +406,24 @@ public class RisalitaCounting {
 		return aux;
 	}
 
-	public static void main (String args[]) throws IOException{
-
+	public void excludeI(int I) {
+		// TODO Auto-generated method stub
 		
-			if (args.length==2) {
+		S.clear();
+		for (int i = 0, j=0; i< intermediate_categories.size()-1; i++){
+			if (i==I)
+				j++;
+			
+//			S.set(i, intermediate_categories.elementAt(j++));
+			S.add( intermediate_categories.elementAt(j++));
+		}
+			
+			
+			
 				
-				String set=args[0];
-
-				System.err.println("----------------------> "+ set);
-				for  (int topK=17;topK<18; topK+=2){
-					
-					
-					RisalitaCounting r = new RisalitaCounting(Integer.parseInt(args[1]),set,topK);
-					
-					r.getStatus(topK);
-
-					r.tagAll();
-					System.err.println(" ----------------------- topk = " + topK + "  ----------------------- ");
-				}
-				
-				System.exit(0);
-			}
-			
-			if (args.length!=3) {
-				System.err.println("Error: set type, height or topK not specified");
-				System.exit(1);;
-			}
-			String set=args[0];
-
-			System.err.println("----------------------> "+ set);
-			
-			RisalitaCounting r = new RisalitaCounting(Integer.parseInt(args[1]),set,Integer.parseInt(args[2]));
-			
-			r.getStatus(Integer.parseInt(args[2]));
-
-			r.tagAll();
-//			
-//			JSONArray json = (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("C:\\Users\\giordano\\Desktop\\Python\\JSONs\\validation_set_tagged.JSON")));
-//			JSONObject ar = (JSONObject) json.get(2);
-//			ArrayList<Integer> v = (ArrayList<Integer>) ar.get("tags");
-//			System.out.println(v);
-	
+		
 	}
+
+
+
 }
