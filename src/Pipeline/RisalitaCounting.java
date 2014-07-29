@@ -146,13 +146,121 @@ public class RisalitaCounting {
 	
 	
 	
+//	
+//	public Vector<Integer> checkVisited(Integer cat, Vector<Integer> visited){
+//		Vector<Integer> aux=new  Vector<Integer>();
+//		try{
+//		
+//			for (Integer c : this.categories.get(cat)) {
+////				if (!visited.contains(c))
+//					aux.add(c);
+//			}
+//	} catch(Exception e) {
+//		
+//	}
+//	
+//			
+//			
+//			return aux;
+//		
+//		
+//	}
+//	
+//	
+//	
+//	public HashSet<Integer> climb(Vector<Integer> categories, HashSet<Integer> result,Vector<Integer> visited,int height){
+//		if (categories.isEmpty()|| height > maxHeight )
+//				return result;
+//
+//		Vector<Integer> toExplore= new Vector<Integer>();;
+//
+//		
+//	
+//		for(Integer cat: categories) {
+//
+////			if (!main_topic.contains(cat))
+//				toExplore.addAll(checkVisited(cat,visited));
+//			
+//			if (S.contains(cat)) {
+////				TODO
+////				if (!result.contains(cat))
+//					result.add(cat);
+//
+//			}
+//				
+//		}
+//	
+//		
+//		
+//		return climb(toExplore,result,categories,height+1);
+//		
+//		
+//		
+//	}	
+//	
+//	public Vector<Integer> getCategoriesByTags(Vector<Integer> tags){
+//		Vector<Integer> cats= new Vector<Integer>();
+//		
+//		for (Integer tag: tags) {
+//
+//			try {
+//				cats.addAll(articles.get(tag.toString()));
+//			} catch (Exception e) {
+//				try {
+//					cats.addAll(articles.get(redirects.get(tag.toString())));
+//				} catch (Exception e1) {
+//
+//				}
+//				
+//			}
+//		}
+//		
+//		return cats;
+//				
+//	}
+//	
+//	
+//
+//
+//	public Vector<Integer> getCategoriesByTag(Integer tag){
+//	
+//		Vector<Integer> cats= new Vector<Integer>();
+//
+//		try {
+//			cats.addAll(articles.get(tag));
+//		} catch (Exception e) {
+//			try {
+//				cats.addAll(articles.get(redirects.get(tag)));
+//			} catch (Exception e1) {
+//
+//			}
+//			
+//		}
+//	
+//	return cats;
+//	
+//	
+//}
+//	
+//	
+//	
+//	
+//	public HashSet<Integer> tag(String query,Integer tags){
+//		
+//		Vector<Integer> aux= getCategoriesByTag(tags);
+//
+//		return climb(aux,new HashSet<Integer>(),new Vector<Integer>(),1);
+//		
+//	}	
 	
-	public Vector<Integer> checkVisited(Integer cat, Vector<Integer> visited){
+	public Vector<Integer> checkVisited(Integer cat, HashSet<Integer> visited){
 		Vector<Integer> aux=new  Vector<Integer>();
-		try{
 		
+		
+		try{
+//			aux.addAll(this.categories.get(cat));	
 			for (Integer c : this.categories.get(cat)) {
-//				if (!visited.contains(c))
+				if (!visited.contains(c))
 					aux.add(c);
 			}
 	} catch(Exception e) {
@@ -168,7 +276,7 @@ public class RisalitaCounting {
 	
 	
 	
-	public HashSet<Integer> climb(Vector<Integer> categories, HashSet<Integer> result,Vector<Integer> visited,int height){
+	public HashSet<Integer> climb(Vector<Integer> categories, HashSet<Integer> result,HashSet<Integer> visited,int height){
 		if (categories.isEmpty()|| height > maxHeight )
 				return result;
 
@@ -178,7 +286,7 @@ public class RisalitaCounting {
 	
 		for(Integer cat: categories) {
 
-//			if (!main_topic.contains(cat))
+			if (!main_topic.contains(cat))
 				toExplore.addAll(checkVisited(cat,visited));
 			
 			if (S.contains(cat)) {
@@ -189,10 +297,11 @@ public class RisalitaCounting {
 			}
 				
 		}
-	
+		
+		visited.addAll(categories);
 		
 		
-		return climb(toExplore,result,categories,height+1);
+		return climb(toExplore,result,visited,height+1);
 		
 		
 		
@@ -247,12 +356,11 @@ public class RisalitaCounting {
 	
 	public HashSet<Integer> tag(String query,Integer tags){
 		
-		Vector<Integer> aux= getCategoriesByTag(tags);
+//		Vector<Integer> aux= getCategoriesByTag(tags);
 
-		return climb(aux,new HashSet<Integer>(),new Vector<Integer>(),1);
+		return climb(getCategoriesByTag(tags),new HashSet<Integer>(),new HashSet<Integer>(),1);
 		
 	}	
-	
 
 	private void writeResultOnFile(HashMap<Integer, Integer> result1, HashMap<Integer, Integer> result2, int whichDataSet, SVMClassifier s) {
 		
@@ -280,6 +388,11 @@ public class RisalitaCounting {
 				
 				svm_node auxNode = new svm_node();
 				auxNode.index = c+1;
+//				if (auxNode.index==123){
+//					System.err.println("er node");
+//					System.exit(1);
+//				}
+					
 				auxNode.value = ii;
 				auxNodeVect.add(auxNode);
 //					
@@ -292,6 +405,8 @@ public class RisalitaCounting {
 		for (int i=0; i< nodeVect.length; i++)
 			nodeVect[i] = auxNodeVect.elementAt(i);
 		
+		
+//		if (nodeVect.length!=1)
 		s.addExample(nodeVect, whichDataSet);
 		
 	}
@@ -410,6 +525,7 @@ public class RisalitaCounting {
 		// TODO Auto-generated method stub
 		
 		S.clear();
+		
 		for (int i = 0, j=0; i< intermediate_categories.size()-1; i++){
 			if (i==I)
 				j++;
@@ -417,6 +533,12 @@ public class RisalitaCounting {
 //			S.set(i, intermediate_categories.elementAt(j++));
 			S.add( intermediate_categories.elementAt(j++));
 		}
+		
+//		if ( intermediate_categories.size() == S.size()) {
+//			System.err.println("errore dim S");
+//			System.exit(1);
+//		}
+			
 			
 			
 			

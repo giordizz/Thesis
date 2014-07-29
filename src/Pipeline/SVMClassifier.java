@@ -37,7 +37,7 @@ public class SVMClassifier {
 	 * taggata con la categoria in esame, "0" altrimenti.
 	 */
 	boolean[] presenceCategoryPerQuery = null;
-	int totNumOfFtrs=122; //TODO
+	int totNumOfFtrs=244; //TODO
 
 //	BinaryExampleGatherer trainGatherer = new BinaryExampleGatherer();
 //	BinaryExampleGatherer testGatherer = new BinaryExampleGatherer();
@@ -198,6 +198,13 @@ public class SVMClassifier {
 			develProblem.x[countDev++]=nodeVect;
 			
 			
+		
+	}
+
+
+	public void init() {
+		countTrain=0;
+		countDev=0;
 		
 	}
 

@@ -39,16 +39,18 @@ public class Script {
 		}
 		
 
-		RisalitaCounting r = new RisalitaCounting(8, 0);
+		RisalitaCounting r = new RisalitaCounting(8, Integer.parseInt(args[0]));
 		
 		r.getStatus();
+		SVMClassifier s = new SVMClassifier(0);
+		
 		
 		for (int I=0 ; I <123 ; I++){ 
 				
 				System.err.println("**** excluding " + I + "  ****");
 				r.excludeI(I);
-				SVMClassifier s = new SVMClassifier(0);
 				
+				s.init();
 				r.tagAll(s,0);
 				r.tagAll(s,1);
 				s.scaleProblems();

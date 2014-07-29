@@ -71,7 +71,7 @@ public class RisalitaCounting {
 				articles.put(Integer.parseInt(s[0]),new Vector<Integer>(){{add(Integer.parseInt(s[1]));}});
 			 else {
 				cur.add(Integer.parseInt(s[1]));
-				articles.put(Integer.parseInt(s[0]),cur);
+//				articles.put(Integer.parseInt(s[0]),cur);
 
 			}
 		}
@@ -84,7 +84,7 @@ public class RisalitaCounting {
 				categories.put(Integer.parseInt(s[0]),new Vector<Integer>(){{add(Integer.parseInt(s[1]));}});
 			else {
 				cur.add(Integer.parseInt(s[1]));
-				categories.put(Integer.parseInt(s[0]),cur);
+//				categories.put(Integer.parseInt(s[0]),cur);
 			}
 		}	
 		br2.close();
@@ -141,12 +141,14 @@ public class RisalitaCounting {
 	
 	
 	
-	public Vector<Integer> checkVisited(Integer cat, Vector<Integer> visited){
+	public Vector<Integer> checkVisited(Integer cat, HashSet<Integer> visited){
 		Vector<Integer> aux=new  Vector<Integer>();
-		try{
 		
+		
+		try{
+//			aux.addAll(this.categories.get(cat));	
 			for (Integer c : this.categories.get(cat)) {
-//				if (!visited.contains(c))
+				if (!visited.contains(c))
 					aux.add(c);
 			}
 	} catch(Exception e) {
@@ -162,7 +164,7 @@ public class RisalitaCounting {
 	
 	
 	
-	public HashSet<Integer> climb(Vector<Integer> categories, HashSet<Integer> result,Vector<Integer> visited,int height){
+	public HashSet<Integer> climb(Vector<Integer> categories, HashSet<Integer> result,HashSet<Integer> visited,int height){
 		if (categories.isEmpty()|| height > maxHeight )
 				return result;
 
@@ -183,10 +185,11 @@ public class RisalitaCounting {
 			}
 				
 		}
-	
+		
+		visited.addAll(categories);
 		
 		
-		return climb(toExplore,result,null,height+1);
+		return climb(toExplore,result,visited,height+1);
 		
 		
 		
@@ -241,9 +244,9 @@ public class RisalitaCounting {
 	
 	public HashSet<Integer> tag(String query,Integer tags){
 		
-		Vector<Integer> aux= getCategoriesByTag(tags);
+//		Vector<Integer> aux= getCategoriesByTag(tags);
 
-		return climb(aux,new HashSet<Integer>(),new Vector<Integer>(),1);
+		return climb(getCategoriesByTag(tags),new HashSet<Integer>(),new HashSet<Integer>(),1);
 		
 	}	
 	
@@ -339,14 +342,14 @@ public class RisalitaCounting {
 	}
 	public void tagAll(){
 		System.err.println("************** Start tagging! **************");
-		Iterator i =json.iterator();
+		Iterator<JSONObject> i =json.iterator();
 		int count=1;
 		
 		HashMap<Integer,Integer> result1 = new HashMap<Integer,Integer>(); 
 		HashMap<Integer,Integer> result2 = new HashMap<Integer,Integer>(); 
 		
 		while( i.hasNext()){
-			JSONObject q = (JSONObject) i.next();
+			JSONObject q = i.next();
 			String query = (String) q.get("query");
 			
 			if (queryNotTagged.contains(query))
@@ -383,6 +386,7 @@ public class RisalitaCounting {
 						else
 							result1.put(cat, curr_count+1);
 							
+						
 				 }
 			}
 			
@@ -415,7 +419,7 @@ public class RisalitaCounting {
 		
 		
 		output.close();
-//		System.err.println("results written on  -> ../Thesis/data/results_"+ setName  +".txt");
+
 		System.err.println("results written on  -> ../Thesis/data/results_"+ setName  +".txt");
 	}
 	
@@ -438,9 +442,7 @@ public class RisalitaCounting {
 //				System.err.println("errore "+ id );
 			}
 			
-//		if (dim!=entities.size())
-//		System.err.println("wow");
-//		entities.addAll(aux);
+
 		
 		return aux;
 	}
