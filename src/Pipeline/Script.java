@@ -18,7 +18,7 @@ public class Script {
 		
 		
 		Vector<Float> weights = new Vector<Float>();
-		BufferedReader r1 = new BufferedReader(new FileReader("data/weights_new8top17.txt"));
+		BufferedReader r1 = new BufferedReader(new FileReader("data/weights_newnew8top21.txt"));
 		String weight;
 //		int count=0;
 		while ((weight = r1 .readLine()) != null) {
@@ -39,7 +39,7 @@ public class Script {
 		}
 		
 
-		RisalitaCounting r = new RisalitaCounting(8, Integer.parseInt(args[0]));
+		RisalitaCounting r = new RisalitaCounting(5, Integer.parseInt(args[0]));
 		
 		r.getStatus();
 		SVMClassifier s = new SVMClassifier(0);

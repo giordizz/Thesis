@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -24,11 +25,30 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+
+
 public class RisalitaCounting {
+	
+	public class SPair {
+		Integer id=0;
+		Float value=0f;
+		
+		public SPair(Integer id, Float value) {
+			this.id=id;
+			this.value=value;
+		}
+
+		public SPair() {
+			// TODO Auto-generated constructor stub
+		}
+		
+		
+	}
 	
 	Map<Integer,Vector<Integer>> articles = new HashMap<Integer, Vector<Integer>>();
 	Map<Integer,Vector<Integer>> categories = new HashMap<Integer, Vector<Integer>>();
-	Map<Integer,Vector<Integer>> jaccardIndexes = new HashMap<Integer, Vector<Integer>>();
+//	Map<Integer,Vector<Integer>> jaccardIndexes = new HashMap<Integer, Vector<Integer>>();
+	Map<Integer,Vector<SPair>> jaccardIndexes = new HashMap<Integer, Vector<SPair>>();	
 	Map<Integer,Integer> redirects = new HashMap<Integer, Integer>();
 	
 	int maxHeight;
@@ -56,7 +76,7 @@ public class RisalitaCounting {
 		
 		gzip1 = new GZIPInputStream(new FileInputStream("../dbpedia/wiki-article-categories-links-sorted.gz"));
 		gzip2 = new GZIPInputStream(new FileInputStream("../dbpedia/wiki-categories-only-links-sorted.gz"));
-		gzip3 = new GZIPInputStream(new FileInputStream("../dbpedia/jaccardFile.txt.gz"));
+		gzip3 = new GZIPInputStream(new FileInputStream("../dbpedia/jaccardFileWithVals.txt.gz"));
 		
 		
 		
@@ -92,22 +112,40 @@ public class RisalitaCounting {
 		br2.close();
 		
 
+//		if (topK>0) 
+//			while((line=br3.readLine())!=null) {
+//				Integer id = Integer.parseInt(line);
+//				final String[] s=br3.readLine().split("\t");
+//	
+//					
+//				Vector<Integer> aux = new Vector<Integer>();
+//				
+//				for (int topI=0; topI < Math.min(s.length,topK) ; topI++ )
+//					aux.add(Integer.parseInt(s[topI]));
+//				jaccardIndexes.put(id, aux);
+//	
+//			}			
+//		br3.close();
+		
 		if (topK>0) 
 			while((line=br3.readLine())!=null) {
 				Integer id = Integer.parseInt(line);
 				final String[] s=br3.readLine().split("\t");
 	
 					
-				Vector<Integer> aux = new Vector<Integer>();
+				Vector<SPair> aux = new Vector<SPair>();
 				
-				for (int topI=0; topI < Math.min(s.length,topK) ; topI++ )
-					aux.add(Integer.parseInt(s[topI]));
+				for (int topI=0; topI < Math.min(s.length,topK) ; topI++ ){
+					
+				
+					final String[] ss= s[topI].split(",");
+					aux.add(new SPair(Integer.parseInt(ss[0]),Float.parseFloat(ss[1])));
+					
+				}
 				jaccardIndexes.put(id, aux);
 	
 			}			
 		br3.close();
-		
-		
 		
 		
 		jsonTraining= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/training_set_tagged.JSON")));
@@ -274,13 +312,11 @@ public class RisalitaCounting {
 		
 	}
 	
-	
-	
-	public HashSet<Integer> climb(Vector<Integer> categories, HashSet<Integer> result,HashSet<Integer> visited,int height){
+	public HashSet<Integer> climb(HashSet<Integer> categories, HashSet<Integer> result,HashSet<Integer> visited,int height){
 		if (categories.isEmpty()|| height > maxHeight )
 				return result;
 
-		Vector<Integer> toExplore= new Vector<Integer>();;
+		HashSet<Integer> toExplore= new HashSet<Integer>();;
 
 		
 	
@@ -298,14 +334,47 @@ public class RisalitaCounting {
 				
 		}
 		
-		visited.addAll(categories);
-		
+//		visited.addAll(categories);
+		visited.addAll(toExplore);
+//		System.out.println("da esploreare: \n" + toExplore);
+//		System.out.println("curr results: \n" + result);
 		
 		return climb(toExplore,result,visited,height+1);
 		
 		
 		
 	}	
+	
+//	public HashSet<Integer> climb(Vector<Integer> categories, HashSet<Integer> result,HashSet<Integer> visited,int height){
+//		if (categories.isEmpty()|| height > maxHeight )
+//				return result;
+//
+//		Vector<Integer> toExplore= new Vector<Integer>();;
+//
+//		
+//	
+//		for(Integer cat: categories) {
+//
+//			if (!main_topic.contains(cat))
+//				toExplore.addAll(checkVisited(cat,visited));
+//			
+//			if (S.contains(cat)) {
+////				TODO
+////				if (!result.contains(cat))
+//					result.add(cat);
+//
+//			}
+//				
+//		}
+//		
+//		visited.addAll(categories);
+//		
+//		
+//		return climb(toExplore,result,visited,height+1);
+//		
+//		
+//		
+//	}	
 	
 	public Vector<Integer> getCategoriesByTags(Vector<Integer> tags){
 		Vector<Integer> cats= new Vector<Integer>();
@@ -331,9 +400,29 @@ public class RisalitaCounting {
 	
 
 
-	public Vector<Integer> getCategoriesByTag(Integer tag){
-	
-		Vector<Integer> cats= new Vector<Integer>();
+//	public Vector<Integer> getCategoriesByTag(Integer tag){
+//	
+//		Vector<Integer> cats= new Vector<Integer>();
+//
+//		try {
+//			cats.addAll(articles.get(tag));
+//		} catch (Exception e) {
+//			try {
+//				cats.addAll(articles.get(redirects.get(tag)));
+//			} catch (Exception e1) {
+//
+//			}
+//			
+//		}
+//	
+//	return cats;
+//	
+//	
+//}
+//	
+	public HashSet<Integer> getCategoriesByTag(Integer tag){
+		
+		HashSet<Integer> cats= new HashSet<Integer>();
 
 		try {
 			cats.addAll(articles.get(tag));
@@ -351,16 +440,22 @@ public class RisalitaCounting {
 	
 }
 	
-	
-	
-	
-	public HashSet<Integer> tag(String query,Integer tags){
+	public HashSet<Integer> tag(String query,Integer tag){
 		
-//		Vector<Integer> aux= getCategoriesByTag(tags);
+		HashSet<Integer> aux= getCategoriesByTag(tag);
 
-		return climb(getCategoriesByTag(tags),new HashSet<Integer>(),new HashSet<Integer>(),1);
+		return climb(aux,new HashSet<Integer>(),new HashSet<Integer>(aux),1);
 		
 	}	
+	
+	
+//	public HashSet<Integer> tag(String query,Integer tags){
+//		
+////		Vector<Integer> aux= getCategoriesByTag(tags);
+//
+//		return climb(getCategoriesByTag(tags),new HashSet<Integer>(),new HashSet<Integer>(),1);
+//		
+//	}	
 
 	private void writeResultOnFile(HashMap<Integer, Integer> result1, HashMap<Integer, Integer> result2, int whichDataSet, SVMClassifier s) {
 		
@@ -435,7 +530,7 @@ public class RisalitaCounting {
 			
 //			System.err.println("prima " + entities.size());
 			
-			ArrayList<Integer> topKs = getTopKSimilarEntity(entities);
+			ArrayList<Integer> topKs = getTopKSimilarEntity2(entities);
 			
 //			entities.addAll(topKs);  --> metodo con fusione topk #feature=123
 //			System.err.println("dopo " + entities.size());
@@ -497,30 +592,95 @@ public class RisalitaCounting {
 	
 
 
-	private ArrayList<Integer> getTopKSimilarEntity(ArrayList<Integer> entities) {
+//	private ArrayList<Integer> getTopKSimilarEntity(ArrayList<Integer> entities) {
+////		int numOfEntity = entities.size();
+////		for (int indexEntity = 0; indexEntity < numOfEntity ; indexEntity++ )
+//
+//		ArrayList<Integer> aux= new ArrayList<Integer>(); 
+//		for (Integer id : entities)
+//			try {
+////				System.err.println("ok");
+////				for (Integer topI :)
+//				aux.addAll(jaccardIndexes.get(id));
+////				entities.addAll( jaccardIndexes.get( ((Long) entities.get(indexEntity)).intValue() ));
+//				
+//			} catch (Exception e) {
+////				e.printStackTrace();
+////				System.err.println("errore "+ id );
+//			}
+//			
+////		if (dim!=entities.size())
+////		System.err.println("wow");
+////		entities.addAll(aux);
+//		
+//		return aux;
+//	}
+	private ArrayList<Integer> getTopKSimilarEntity2(ArrayList<Integer> entities) {
 //		int numOfEntity = entities.size();
 //		for (int indexEntity = 0; indexEntity < numOfEntity ; indexEntity++ )
 
-		ArrayList<Integer> aux= new ArrayList<Integer>(); 
-		for (Integer id : entities)
+//		(Vector<Integer>)[] aux1 = new (Vector<Integer>)[entities.size())];
+		
+		ArrayList<List<SPair>> aux = new ArrayList<List<SPair>>();
+		
+		
+		int i=0;
+		int  err = 0;
+		for (Integer id : entities) {
 			try {
 //				System.err.println("ok");
 //				for (Integer topI :)
-				aux.addAll(jaccardIndexes.get(id));
+				aux.add((jaccardIndexes.get(id))); //TODO .subList(0, topK)
+//				System.out.println(aux.get(i).size());
 //				entities.addAll( jaccardIndexes.get( ((Long) entities.get(indexEntity)).intValue() ));
 				
 			} catch (Exception e) {
+				e.printStackTrace();
+				err++;
 //				e.printStackTrace();
 //				System.err.println("errore "+ id );
 			}
-			
-//		if (dim!=entities.size())
-//		System.err.println("wow");
-//		entities.addAll(aux);
-		
-		return aux;
-	}
+//			
+//			if (aux[i]!=null)
+//				System.out.println(aux[i].size());
+			i++;
 
+		}
+		if (aux.size()==0)
+			return  new ArrayList<Integer>();
+			
+//		if (err== entities.size())
+//			System.err.println("SONO CAZZI");
+		int[] indexes = new int[aux.size()];
+		
+//		System.out.println(err);
+		ArrayList<SPair> ris= new ArrayList<SPair>(topK); 	
+		for (int ii=0 ; ii< topK; ii++	) {
+			ris.add(new SPair());
+		}
+		
+		
+			for (int j=0;j< topK; j++){
+				int maxIndex=0;
+	//			ris.set(j, aux[0].elementAt(indexes[0]++));
+				for (int jj=0; jj< aux.size(); jj++)
+						if (aux.get(jj)==null || indexes[jj] >= aux.get(jj).size())
+							continue;
+						else if (ris.get(j).value < aux.get(jj).get(indexes[jj]).value) {
+								ris.set(j,aux.get(jj).get(indexes[jj]));
+								maxIndex=jj;
+							}
+				indexes[maxIndex]++;
+			}
+		
+	
+		ArrayList<Integer> risID = new ArrayList<Integer>(topK); 
+		for (int k=0; k< ris.size();k++)
+			risID.add(ris.get(k).id);
+//		System.out.println(risID.get(0));
+//		System.out.println(risID.toString());
+		return risID;
+	}
 	public void excludeI(int I) {
 		// TODO Auto-generated method stub
 		
