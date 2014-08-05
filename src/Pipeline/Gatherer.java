@@ -27,13 +27,42 @@ public class Gatherer {
 			
 			this.trainProblem = new svm_problem();
 			this.trainProblem.l = trainProblem.l;
-			this.trainProblem.x = trainProblem.x.clone();
 			this.trainProblem.y = new double[trainProblem.l];
+			
+			this.trainProblem.x = new svm_node[trainProblem.l][];
+			
+			for (int i=0; i < trainProblem.x.length ; i++){
+				svm_node[] aux= trainProblem.x[i];
+				this.trainProblem.x[i] = new svm_node[aux.length];
+				for (int ii=0; ii < aux.length ; ii++){
+					this.trainProblem.x[i][ii]= new svm_node();				
+					this.trainProblem.x[i][ii].index =aux[ii].index;
+					this.trainProblem.x[i][ii].value =aux[ii].value;
+				}
+			}
+				
+					
+//					trainProblem.x.clone();
+			
+			
+			
 			
 			this.develProblem = new svm_problem();
 			this.develProblem.l = develProblem.l;
-			this.develProblem.x = develProblem.x.clone();
 			this.develProblem.y = new double[develProblem.l];
+			
+			
+			this.develProblem.x = new svm_node[develProblem.l][];
+			
+			for (int i=0; i < develProblem.x.length ; i++){
+				svm_node[] aux= develProblem.x[i];
+				this.develProblem.x[i] = new svm_node[aux.length];
+				for (int ii=0; ii < aux.length ; ii++){
+					this.develProblem.x[i][ii]= new svm_node();				
+					this.develProblem.x[i][ii].index =aux[ii].index;
+					this.develProblem.x[i][ii].value =aux[ii].value;
+				}
+			}
 			
 		}
 		

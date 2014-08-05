@@ -1,6 +1,13 @@
 package it.giordizz.Thesis;
 
 
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,18 +17,9 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
-import java.util.Vector;
 import java.util.zip.GZIPInputStream;
-
-import javax.swing.text.StyledEditorKit.AlignmentAction;
-
-import libsvm.svm_node;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -46,30 +44,40 @@ public class Container {
 		
 	}
 	
-	
-	Map<Integer,Vector<Integer>> reverseCategories = new HashMap<Integer, Vector<Integer>>();
-	private Map<Integer,Integer> redirects = new HashMap<Integer, Integer>();
-	private Map<Integer,Vector<SPair>> jaccardIndexes = new HashMap<Integer, Vector<SPair>>();	
-	private Map<Integer,Vector<Integer>> categories = new HashMap<Integer, Vector<Integer>>();
-	private Map<Integer,Vector<Integer>> articles = new HashMap<Integer, Vector<Integer>>();
-	
-//	int[][] resultsTraining;
-//	int[][] resultsDevelopment;
-	
 
-	Vector<HashSet<Integer>>[][] training = new Vector[428][2];
-	Vector<HashSet<Integer>>[][] development = new Vector[174][2];
+	Int2ObjectMap<ArrayList<Integer>> reverseCategories = new Int2ObjectOpenHashMap<ArrayList<Integer>>();
+	private Int2IntMap redirects = new  Int2IntOpenHashMap();
+	private Int2ObjectMap<ArrayList<SPair>> jaccardIndexes = new Int2ObjectOpenHashMap< ArrayList<SPair>>();	
+	private Int2ObjectMap<ArrayList<Integer>> categories = new Int2ObjectOpenHashMap<ArrayList<Integer>>();
+	private Int2ObjectMap<ArrayList<Integer>> articles = new Int2ObjectOpenHashMap<ArrayList<Integer>>();
 	
+	Object2ObjectOpenHashMap<String,ArrayList<Boolean>> trainingLabels = new Object2ObjectOpenHashMap<String, ArrayList<Boolean>>();
+	Object2ObjectOpenHashMap<String,ArrayList<Boolean>> developmentLabels = new Object2ObjectOpenHashMap<String, ArrayList<Boolean>>();
+	
+	IntOpenHashSet main_topic;
+	
+	
+//	Map<Integer,ArrayList<Integer>> reverseCategories = new HashMap<Integer, ArrayList<Integer>>();
+//	private Map<Integer,Integer> redirects = new HashMap<Integer, Integer>();
+//	private Map<Integer,ArrayList<SPair>> jaccardIndexes = new HashMap<Integer, ArrayList<SPair>>();	
+//	private Map<Integer,ArrayList<Integer>> categories = new HashMap<Integer, ArrayList<Integer>>();
+//	private Map<Integer,ArrayList<Integer>> articles = new HashMap<Integer, ArrayList<Integer>>();
+//	
+//	Map<String,ArrayList<Boolean>> trainingLabels = new HashMap<String, ArrayList<Boolean>>();
+//	Map<String,ArrayList<Boolean>> developmentLabels = new HashMap<String, ArrayList<Boolean>>();
+//	
+//	HashSet<Integer> main_topic;
+
+
+//	@SuppressWarnings("unchecked")
+//	ArrayList<HashSet<Integer>>[][] training = new ArrayList[428][2],  development = new ArrayList[174][2] ;
+//	ArrayList<ArrayList<Integer>>[][] training = new ArrayList[428][2],  development = new ArrayList[174][2] ;
+	int[][][][] training = new int[428][2][][],  development = new int[174][2][][];
 	
 	Float[] weights = new Float[67];
 	String[] targetCategories = new String[67];
-//	int currentIterationIdx = 0;
-	
-	
-	
-//	private HashSet<Integer> main_topic;
-	private JSONArray jsonTraining;
-	private JSONArray jsonValidation;
+
+	private JSONArray jsonTraining, jsonValidation;
 
 	
 
@@ -77,21 +85,22 @@ public class Container {
 	
 	Container(int topK) throws FileNotFoundException, UnsupportedEncodingException{
 		this.topK = topK;
+		Integer[] aux= new Integer[]{694871,4892515,694861,3103170,693800,751381,693555,1004110,1784082,8017451,691928,690747,692348,696603,691008,695027,42958664,691182,693708,696648};
+		main_topic = new IntOpenHashSet(Arrays.asList(aux));
 
-//		Integer[] aux= new Integer[]{694871,4892515,694861,3103170,693800,751381,693555,1004110,1784082,8017451,691928,690747,692348,696603,691008,695027,42958664,691182,693708,696648};
-//		main_topic = new HashSet<Integer>(Arrays.asList(aux));
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void getStatus() throws IOException{
 		
 		GZIPInputStream	gzip1=null, gzip2=null, gzip3=null;
 		
-//		gzip1 = new GZIPInputStream(new FileInputStream("wiki-article-categories-links-sorted.gz"));
-//		gzip2 = new GZIPInputStream(new FileInputStream("wiki-categories-only-links-sorted.gz"));
-//		gzip3 = new GZIPInputStream(new FileInputStream("jaccardFileWithVals.txt.gz"));
-		gzip1 = new GZIPInputStream(new FileInputStream("../dbpedia/wiki-article-categories-links-sorted.gz"));
-		gzip2 = new GZIPInputStream(new FileInputStream("../dbpedia/wiki-categories-only-links-sorted.gz"));
-		gzip3 = new GZIPInputStream(new FileInputStream("../dbpedia/jaccardFileWithVals.txt.gz")); //TODO
+		gzip1 = new GZIPInputStream(new FileInputStream("data/wiki-article-categories-links-sorted.gz"));
+		gzip2 = new GZIPInputStream(new FileInputStream("data/wiki-categories-only-links-sorted.gz"));
+		gzip3 = new GZIPInputStream(new FileInputStream("data/jaccardFileWithVals.txt.gz"));
+//		gzip1 = new GZIPInputStream(new FileInputStream("../dbpedia/wiki-article-categories-links-sorted.gz"));
+//		gzip2 = new GZIPInputStream(new FileInputStream("../dbpedia/wiki-categories-only-links-sorted.gz"));
+//		gzip3 = new GZIPInputStream(new FileInputStream("../dbpedia/jaccardFileWithVals.txt.gz")); 
 		
 		
 		BufferedReader br1 = new BufferedReader(new InputStreamReader(gzip1));
@@ -102,9 +111,14 @@ public class Container {
 		String line="";
 		while((line=br1.readLine())!=null) {
 			final String[] s=line.split("\t");
-			Vector<Integer> cur = articles.get(Integer.parseInt(s[0]));
+			ArrayList<Integer> cur = articles.get(Integer.parseInt(s[0]));
 			if (cur==null) 
-				articles.put(Integer.parseInt(s[0]),new Vector<Integer>(){{add(Integer.parseInt(s[1]));}});
+				articles.put(Integer.parseInt(s[0]),new ArrayList<Integer>(){/**
+					 * 
+					 */
+					private static final long serialVersionUID = 1L;
+
+				{add(Integer.parseInt(s[1]));}});
 			 else {
 				cur.add(Integer.parseInt(s[1]));
 
@@ -115,17 +129,26 @@ public class Container {
 
 		while((line=br2.readLine())!=null) {
 			final String[] s=line.split("\t");
-			Vector<Integer> cur1 = categories.get(Integer.parseInt(s[0]));
+			ArrayList<Integer> cur1 = categories.get(Integer.parseInt(s[0]));
 			if (cur1==null) 
-				categories.put(Integer.parseInt(s[0]),new Vector<Integer>(){{add(Integer.parseInt(s[1]));}});
+				categories.put(Integer.parseInt(s[0]),new ArrayList<Integer>(){/**
+					 * 
+					 */
+					private static final long serialVersionUID = 1L;
+
+				{add(Integer.parseInt(s[1]));}});
 			else {
 				cur1.add(Integer.parseInt(s[1]));
-//				categories.put(Integer.parseInt(s[0]),cur);
 			}
 			
-			Vector<Integer> cur2 = reverseCategories.get(Integer.parseInt(s[1]));
+			ArrayList<Integer> cur2 = reverseCategories.get(Integer.parseInt(s[1]));
 			if (cur2==null) 
-				reverseCategories.put(Integer.parseInt(s[1]),new Vector<Integer>(){{add(Integer.parseInt(s[0]));}});
+				reverseCategories.put(Integer.parseInt(s[1]),new ArrayList<Integer>(){/**
+					 * 
+					 */
+					private static final long serialVersionUID = 1L;
+
+				{add(Integer.parseInt(s[0]));}});
 			else {
 				cur2.add(Integer.parseInt(s[0]));
 			}
@@ -133,9 +156,11 @@ public class Container {
 		br2.close();
 
 
-		jsonTraining= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/training_set_tagged.JSON")));
-		jsonValidation= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/validation_set_tagged.JSON")));
-		
+//		jsonTraining= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/training_set_tagged.JSON")));
+//		jsonValidation= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("../data/validation_set_tagged.JSON")));
+		jsonTraining= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("data/training_set_tagged.JSON")));
+		jsonValidation= (JSONArray)JSONValue.parse(new InputStreamReader(new FileInputStream("data/validation_set_tagged.JSON")));
+//		
 
 		
 		if (topK>0) 
@@ -144,7 +169,7 @@ public class Container {
 				final String[] s=br3.readLine().split("\t");
 	
 					
-				Vector<SPair> aux = new Vector<SPair>();
+				ArrayList<SPair> aux = new ArrayList<SPair>();
 				
 				for (int topI=0; topI < Math.min(s.length,topK) ; topI++ ){
 					
@@ -159,8 +184,8 @@ public class Container {
 		br3.close();
 		
 		
-		BufferedReader br4 = new BufferedReader(new FileReader("../Download/My_redirect_ID_2"));
-//		BufferedReader br4 = new BufferedReader(new FileReader("My_redirect_ID_2"));
+//		BufferedReader br4 = new BufferedReader(new FileReader("../Download/My_redirect_ID_2"));
+		BufferedReader br4 = new BufferedReader(new FileReader("data/My_redirect_ID_2"));
 		while( (line=br4.readLine())!=null) {
 			final String[] s=line.split("\t");
 		     redirects.put(Integer.parseInt(s[0]),Integer.parseInt(s[1]));
@@ -172,7 +197,8 @@ public class Container {
 
 		
 		HashSet<String> queryNotTagged = new HashSet<String>();
-		BufferedReader br6 = new BufferedReader(new FileReader("query_not_tagged.txt"));
+//		BufferedReader br6 = new BufferedReader(new FileReader("query_not_tagged.txt"));
+		BufferedReader br6 = new BufferedReader(new FileReader("data/query_not_tagged.txt"));
 		while( (line=br6.readLine())!=null) 
 		     queryNotTagged.add(line);
 		     			
@@ -195,37 +221,84 @@ public class Container {
 			targetCategories[idx]=line;		
 		br8.close();
 
+//		
+//		String presenceFile = (T == setType.TRAINING) ? "data/presence_cat-target_training.txt"
+				
+
+		BufferedReader br9 = new BufferedReader(new FileReader("data/presence_cat-target_training.txt"));
+		while ((line = br9.readLine()) != null ){
+
+				String[] aux = br9.readLine().split("\t");
+
+				ArrayList<Boolean> presences = new ArrayList<Boolean>();
+				for (int presenceIdx = 0; presenceIdx < aux.length ; presenceIdx++ )
+					presences.add(aux[presenceIdx].equals("1"));			
+				
+				trainingLabels.put(line, presences);
+				
+
+		}
+		br9.close();
+
+		
+		BufferedReader br10 = new BufferedReader(new FileReader("data/presence_cat-target_validation.txt"));
+		while ((line = br10.readLine()) != null ){
+
+				String[] aux = br10.readLine().split("\t");
+
+				ArrayList<Boolean> presences = new ArrayList<Boolean>();
+				for (int presenceIdx = 0; presenceIdx < aux.length ; presenceIdx++ )
+					presences.add(aux[presenceIdx].equals("1"));					
+
+				developmentLabels.put(line, presences);
+		}		
+		br10.close();		
+		
+		
+		
+		
 		
 		Iterator<JSONObject> i = jsonTraining.iterator();
 		
-		int countExamples = 0;
-		while( i.hasNext()){
+		
+		for(int countExamples = 0; i.hasNext() ; ){
 			JSONObject q = i.next();
 			String query = (String) q.get("query");
-			
+
 			if (queryNotTagged.contains(query))
 				continue;
 			
 			
-			training[countExamples][0] = new Vector<HashSet<Integer>>();
-			Vector<Integer> entities = new Vector<Integer>();
-			for (Long id : (ArrayList<Long>) q.get("tags")) {
-				entities.add(id.intValue());
-				training[countExamples][0].add(getCategoriesByTag(id.intValue()));
+//			training[countExamples][0] = new ArrayList<ArrayList<Integer>>();
+			ArrayList<Integer> entities = new ArrayList<Integer>();
+			
+			ArrayList<Long> tags = (ArrayList<Long>) q.get("tags");
+			training[countExamples][0] = new int[tags.size()][];
+			for (int ii = 0; ii < tags.size(); ii++) {
+				entities.add(tags.get(ii).intValue());
+//				training[countExamples][0].add(getCategoriesOfEntity(id.intValue()));
+				training[countExamples][0][ii] = getCategoriesOfEntity(tags.get(ii).intValue());
 			}
 			
+//			 = aux; //new int[aux.size()][];
 			
-			training[countExamples][1] = new Vector<HashSet<Integer>>();
-			for (Integer id : getTopKSimilarEntity2(entities)){
-				training[countExamples][1].add(getCategoriesByTag(id));
+			
+			
+//			training[countExamples][1] = new ArrayList<ArrayList<Integer>>();
+			ArrayList<Integer> topk = getTopKSimilarEntity2(entities);
+			training[countExamples][1] = new int[topk.size()][];
+			for (int ii = 0; ii < topk.size(); ii++) {
+
+//				training[countExamples][1].add(getCategoriesOfEntity(id));
+				training[countExamples][1][ii]= getCategoriesOfEntity(topk.get(ii));
 			}
-	
+//			training[countExamples][1] = aux;
 			countExamples++;
 		}
 		
-		countExamples = 0;
+
 		i = jsonValidation.iterator();
-		while( i.hasNext()){
+		for(int countExamples = 0; i.hasNext() ; ){
 			JSONObject q = i.next();
 			String query = (String) q.get("query");
 			
@@ -234,22 +307,35 @@ public class Container {
 			
 //			
 			
-			development[countExamples][0] = new Vector<HashSet<Integer>>();
-			
-			Vector<Integer> entities = new Vector<Integer>();
-			for (Long id : (ArrayList<Long>) q.get("tags")) {
-				entities.add(id.intValue());
+//			development[countExamples][0] = new ArrayList<ArrayList<Integer>>();
+//			ArrayList<int[]> aux = new ArrayList<int[]>();
+			ArrayList<Integer> entities = new ArrayList<Integer>();
+
+			ArrayList<Long> tags = (ArrayList<Long>) q.get("tags");
+			development[countExamples][0] = new int[tags.size()][];
+			for (int ii = 0; ii < tags.size(); ii++) {
+				entities.add(tags.get(ii).intValue());
 //				aux.get(0).add(getCategoriesByTag(id.intValue()));
-				development[countExamples][0].add(getCategoriesByTag(id.intValue()));
+//				development[countExamples][0].add(getCategoriesOfEntity(id.intValue()));
+				development[countExamples][0][ii] = getCategoriesOfEntity(tags.get(ii).intValue());
 			}
+//			 = aux;
 			
 			
-			development[countExamples][1] = new Vector<HashSet<Integer>>();
-			for (Integer id : getTopKSimilarEntity2(entities)){
-				development[countExamples][1].add(getCategoriesByTag(id));
+			
+//			training[countExamples][1] = new ArrayList<ArrayList<Integer>>();
+			ArrayList<Integer> topk = getTopKSimilarEntity2(entities);
+			development[countExamples][1]= new int[topk.size()][];
+			for (int ii = 0; ii < topk.size(); ii++) {
+//			development[countExamples][1] = new ArrayList<ArrayList<Integer>>();
+//			for (Integer id : getTopKSimilarEntity2(entities)){
+//				development[countExamples][1].add(getCategoriesOfEntity(id));
+				development[countExamples][1][ii] = getCategoriesOfEntity(topk.get(ii));
 			}
-	
+//			 = aux;
 			countExamples++;
+			
+	
 		}
 
 		
@@ -266,7 +352,28 @@ public class Container {
 	}
 	
 	
+	public int[] getCategoriesOfEntity(Integer tag){
+		
+		ArrayList<Integer> cats= new ArrayList<Integer>();
 
+		try {
+			cats.addAll(articles.get(tag));
+		} catch (Exception e) {
+			try {
+				cats.addAll(articles.get(redirects.get(tag)));
+			} catch (Exception e1) {
+
+			}
+			
+		}
+		
+		int[] aux = new int[cats.size()];
+		for (int i=0; i< cats.size() ; i++)
+			aux[i]=cats.get(i);
+		
+		return aux;
+		
+	}
 
 	
 	
@@ -291,28 +398,25 @@ public class Container {
 	}
 	
 
-	private Vector<Integer> getTopKSimilarEntity2(Vector<Integer> entities) {
-		Vector<Vector<SPair>> aux = new Vector<Vector<SPair>>();
+	private ArrayList<Integer> getTopKSimilarEntity2(ArrayList<Integer> entities) {
+		ArrayList<ArrayList<SPair>> aux = new ArrayList<ArrayList<SPair>>();
 		
-		
-		int i=0;
-		int  err = 0;
+
 		for (Integer id : entities) {
 			try {
-				aux.add((jaccardIndexes.get(id))); //TODO .subList(0, topK)
+				aux.add((jaccardIndexes.get(id))); 
 				
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			i++;
 
 		}
 		if (aux.size()==0)
-			return  new Vector<Integer>();
+			return  new ArrayList<Integer>();
 			
 		int[] indexes = new int[aux.size()];
 		
-		Vector<SPair> ris= new Vector<SPair>(topK); 	
+		ArrayList<SPair> ris= new ArrayList<SPair>(topK); 	
 		for (int ii=0 ; ii< topK; ii++	) {
 			ris.add(new SPair());
 		}
@@ -331,7 +435,7 @@ public class Container {
 			}
 		
 	
-			Vector<Integer> risID = new Vector<Integer>(topK); 
+			ArrayList<Integer> risID = new ArrayList<Integer>(topK); 
 		for (int k=0; k< ris.size();k++)
 			risID.add(ris.get(k).id);
 		

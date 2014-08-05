@@ -1,6 +1,6 @@
 package it.giordizz.Thesis;
 
-public class Result {
+public class Result implements Comparable<Result> {
 	
 	Integer categoryID;
 	float avgF1;
@@ -9,6 +9,14 @@ public class Result {
 		categoryID = category;
 		avgF1 = F1;
 		
+	}
+
+	@Override
+	public int compareTo(Result o) {		
+		return -Float.compare(avgF1, o.avgF1);
 	}		
+	
+	
+	
 	
 }

@@ -38,8 +38,9 @@ public class SupportSVM {
 			System.err.print("ERROR: " + error_msg + "\n");
 			System.exit(1);
 		}
-		
-		return svm.svm_train(trainProblem, param);
+		svm s = new svm();
+		s.svm_set_print_string_function(new NoOutput());
+		return s.svm_train(trainProblem, param);
 		
 	}
 	

@@ -4,11 +4,8 @@ import it.acubelab.batframework.metrics.MetricsResultSet;
 import it.acubelab.batframework.utils.Pair;
 import it.giordizz.Thesis.Gatherer.Problems;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.Vector;
-
+import java.util.ArrayList;
 import libsvm.svm;
 import libsvm.svm_model;
 import libsvm.svm_node;
@@ -23,26 +20,11 @@ import libsvm.svm_problem;
  * 
  */
 public class SVMClassifier {
-//	String categoryName;
-//	String suffixByMode=".txt";
-	
-//	Vector<double[]> posVectors;
-//	Vector<double[]> negVectors;
+
 	svm_problem trainProblem;
 	svm_problem develProblem;
-	
-//	String dir="";
-	/**
-	 * presenceCategoryPerQuery: array di n stringhe nell'alfabeto {"0","1"},
-	 * dove n e' il numero di query che compongono il set considerato (o training
-	 * o dev). L'i-esimo elemento dell'array e' "1" se la i-esima query del set e'
-	 * taggata con la categoria in esame, "0" altrimenti.
-	 */
-//	boolean[] presenceCategoryPerQuery = null;
-	int totNumOfFtrs=-1;
 
-//	BinaryExampleGatherer trainGatherer = new BinaryExampleGatherer();
-//	BinaryExampleGatherer testGatherer = new BinaryExampleGatherer();
+	int totNumOfFtrs=-1;
 
 	/**
 	 * setType: specifica se i dati da raccogliere fanno parte del training o
@@ -52,133 +34,16 @@ public class SVMClassifier {
 		TRAINING, DEVELOPMENT
 	}
 
-	/**
-	 * Raccoglie gli esempi dai file, inserendoli nel rispettivo gatherer a
-	 * seconda del parametro specificato.
-	 * <p/>
-	 * Nei file di tipo "results*" sono presenti tante righe quante sono le
-	 * query del rispettivo set; ogni riga del file identifica l'array di
-	 * features di una specifica query nel formato "f1,f2,...fn" dove n e'
-	 * attualmente 123.
-	 * <p/>
-	 * Nei file di tipo "presence_cat-target*" sono presenti 2 righe per ogni
-	 * categoria target (quindi in tutto ci sono 134 righe); La prima di queste
-	 * due righe identifica il nome della categoria, la seconda e', invece, nel
-	 * formato "B1	B2		BN" dove N e' la dimensione del rispettivo set; il
-	 * generico valore Bi e' 1 se la i-esima query del set e' taggata con la su
-	 * detta categoria, 0 altrimenti.
-	 * 
-	 * @param T
-	 *            permette di identificare se si desidera prelevare gli esempi
-	 *            dal training set o dal development set.
-	 * @throws Exception 
-	 */
-
-//	public static void gatherUnlabeledData(setType T) throws Exception {
-//
-//		String featuresFile = (T == setType.TRAINING) ? "data/results_training.txt" 
-//				: "data/results_validation.txt";
-//
-//
-//
-//		
-//		BufferedReader reader = new BufferedReader(new FileReader(featuresFile));
-//
-//		
-//		
-//		
-//		
-//		Vector<svm_node[]> auxVector =  new Vector<svm_node[]>();
-//		String lineOfFeatures;
-//		while  ( (lineOfFeatures = reader.readLine()) != null) {
-//			String[] features = lineOfFeatures.split(",");
-//
-//
-//			Vector<svm_node> auxNodeVect = new Vector<svm_node>();
-//			int ftrIdx = 0;
-//			for (; ftrIdx < features.length; ftrIdx++) {
-//				Double d = Double.parseDouble(features[ftrIdx]);
-////	TODO			
-//				if (d!=0.) {
-//					
-//					svm_node auxNode = new svm_node();
-//					auxNode.index = ftrIdx+1;
-//					auxNode.value = d;
-//					auxNodeVect.add(auxNode);
-////						
-//					}
-//					
-//			}
-//
-//			if (totNumOfFtrs == -1)
-//				totNumOfFtrs = ftrIdx+2;
-//			
-//			svm_node[] nodeVect = new svm_node[auxNodeVect.size()+2];
-//			int i=0;
-//			for (; i< auxNodeVect.size(); i++)
-//				nodeVect[i] = auxNodeVect.elementAt(i);
-//			
-//			svm_node plus1Node = new svm_node();
-//			plus1Node.index = 247;
-//			plus1Node.value = 0;
-//			nodeVect[i++]= plus1Node;
-//			
-//			svm_node plus2Node = new svm_node();
-//			plus2Node.index = 248;
-//			plus2Node.value = 0;
-//			nodeVect[i]= plus2Node;
-//			
-////			auxNodeVect.clear();
-//			auxVector.add(nodeVect);
-//	
-//		}
-//
-//		
-//		svm_problem problem = new svm_problem();
-//		problem.l = auxVector.size();
-//		problem.x = new svm_node[problem.l][];
-//		problem.y = new double[problem.l];
-//		
-//		
-//		for  ( int i=0; i < problem.l ; i++ ) 
-//			problem.x[i]=auxVector.elementAt(i);
-//		
-//		
-//		
-//		if (T == setType.TRAINING)			
-//			trainProblem=problem;
-//		else
-//			develProblem=problem;
-//		
-//		reader.close();
-//
-//	}
 	
 
-	public void setLabels(String categoryName,setType T) throws IOException {
-
-			String presenceFile = (T == setType.TRAINING) ? "data/presence_cat-target_training.txt"
-					: "data/presence_cat-target_validation.txt";
+	public void setLabels(String categoryName,ArrayList<Boolean> presences, setType T) throws IOException {
 
 			svm_problem problem = (T == setType.TRAINING) ? trainProblem : develProblem;
 
-			BufferedReader reader = new BufferedReader(new FileReader(presenceFile));
 
-			String line = null;
-			boolean catOk = false;
-			while ( !catOk && (line = reader.readLine()) != null )
-				if (line.equals(categoryName)) {
-					String[] aux = reader.readLine().split("\t");
+			for (int presenceIdx = 0; presenceIdx < presences.size() ; presenceIdx++ )
+				problem.y[presenceIdx] = (presences.get(presenceIdx)) ? 1.0 : -1.0 ;			
 
-					for (int presenceIdx = 0; presenceIdx < aux.length ; presenceIdx++ )
-						problem.y[presenceIdx] = (aux[presenceIdx].equals("1")) ? 1.0 : -1.0 ;					
-					catOk = true;
-				}
-			
-			reader.close();
-			
-			if (!catOk)
-				throw new CategoryNotPresent(categoryName);
 	}
 
 	
@@ -235,34 +100,7 @@ public class SVMClassifier {
 
 	}
 
-	public class CategoryNotPresent extends RuntimeException {
-
-		private static final long serialVersionUID = 1L;
-
-		public CategoryNotPresent(String categoryName) {
-			super("Category <" +categoryName+"> not found..");
-		}
-		
-	}
 	
-
-
-//
-//	public SVMClassifier(int mode, int topK) { //TODO
-//		switch (mode) {
-//		case 0: break;
-//		case 1: this.suffixByMode = "_path.txt";
-//				break;
-//		case 2: this.suffixByMode = "_path_range.txt";
-//				break;
-//		case 3: this.suffixByMode = "_range.txt";
-//		
-//	
-//		}
-//		
-//		dir="newnew8top" + topK + "/";
-//	}
-
 
 
 	public SVMClassifier(Problems copyOfProblems) {
@@ -282,47 +120,63 @@ public class SVMClassifier {
 		LibSvmUtils.scaleProblem(develProblem,  minsAndMaxs.first, minsAndMaxs.second);
 	}
 
-//
-//	public static void gatherData() throws Exception {
-//		System.err.println("start gathering training examples..");
-//		gatherUnlabeledData(setType.TRAINING);
-//		System.err.println("-> training examples gathered! <-");
-//		
-//		System.err.println("start gathering development examples..");
-//		gatherUnlabeledData(setType.DEVELOPMENT);		
-//		System.err.println("->  development examples gathered! <-");
-//		
-////		System.err.println("start scaling problems..");
-////		scaleProblems();
-////		System.err.println("-> problems scaled! <-");
-//	}
 
 
-	public void setLabels(String categoryName) throws IOException {
-//		System.err.println("start labeling examples..");
-		setLabels(categoryName,setType.TRAINING);
-		setLabels(categoryName,setType.DEVELOPMENT);
-//		System.err.println("end labeling examples..");
+	public void setLabels(String categoryName, Container container) throws IOException {
+
+		setLabels(categoryName, container.trainingLabels.get(categoryName), setType.TRAINING);
+		setLabels(categoryName, container.developmentLabels.get(categoryName), setType.DEVELOPMENT);
+
 		
 	}
 
 
+//	public void updateFeatures(HashSet<Integer>[][] resultsTraining,
+//			HashSet<Integer>[][] resultsDevelopment) {
+//		
+//		for (int queryIdx=0; queryIdx <resultsTraining.length; queryIdx++  ) {
+////			System.err.println(resultsTraining[queryIdx][0] + " - " +resultsTraining[queryIdx][1]);
+//			
+//			if (resultsTraining[queryIdx][0]!=null)
+//				trainProblem.x[queryIdx][trainProblem.x[queryIdx].length-2].value = 
+//						resultsTraining[queryIdx][0].size();
+//			
+//			if (resultsTraining[queryIdx][1]!=null)
+//				trainProblem.x[queryIdx][trainProblem.x[queryIdx].length-1].value =
+//						resultsTraining[queryIdx][1].size();
+//		}
+//		for (int queryIdx=0; queryIdx <resultsDevelopment.length; queryIdx++  ) {
+////			System.err.println(resultsDevelopment[queryIdx][0] + " - " +resultsDevelopment[queryIdx][1]);
+//			if (resultsDevelopment[queryIdx][0]!=null)
+//				develProblem.x[queryIdx][develProblem.x[queryIdx].length-2].value =
+//					resultsDevelopment[queryIdx][0].size();
+//			
+//			if (resultsDevelopment[queryIdx][1]!=null)
+//				develProblem.x[queryIdx][develProblem.x[queryIdx].length-1].value = 
+//					resultsDevelopment[queryIdx][1].size();
+//		}
+//	}
 	public void updateFeatures(int[][] resultsTraining,
 			int[][] resultsDevelopment) {
 		
 		for (int queryIdx=0; queryIdx <resultsTraining.length; queryIdx++  ) {
 //			System.err.println(resultsTraining[queryIdx][0] + " - " +resultsTraining[queryIdx][1]);
-			trainProblem.x[queryIdx][trainProblem.x[queryIdx].length-2].value = 
-					resultsTraining[queryIdx][0];
-			trainProblem.x[queryIdx][trainProblem.x[queryIdx].length-1].value =
-					resultsTraining[queryIdx][1];
+
+				trainProblem.x[queryIdx][trainProblem.x[queryIdx].length-2].value = 
+						resultsTraining[queryIdx][0];
+
+				trainProblem.x[queryIdx][trainProblem.x[queryIdx].length-1].value =
+						resultsTraining[queryIdx][1];
 		}
 		for (int queryIdx=0; queryIdx <resultsDevelopment.length; queryIdx++  ) {
 //			System.err.println(resultsDevelopment[queryIdx][0] + " - " +resultsDevelopment[queryIdx][1]);
-			develProblem.x[queryIdx][develProblem.x[queryIdx].length-2].value = resultsDevelopment[queryIdx][0];
-			develProblem.x[queryIdx][develProblem.x[queryIdx].length-1].value = resultsDevelopment[queryIdx][1];
+
+				develProblem.x[queryIdx][develProblem.x[queryIdx].length-2].value =
+					resultsDevelopment[queryIdx][0];
+			
+				develProblem.x[queryIdx][develProblem.x[queryIdx].length-1].value = 
+					resultsDevelopment[queryIdx][1];
 		}
 	}
-
 
 }
