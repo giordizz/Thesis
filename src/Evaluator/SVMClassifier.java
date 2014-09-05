@@ -153,7 +153,7 @@ public class SVMClassifier {
 	}
 	
 
-	public void setLabels(String categoryName,setType T) throws IOException {
+	public int setLabels(String categoryName,setType T) throws IOException {
 
 			String presenceFile = (T == setType.TRAINING) ? "data/presence_cat-target_training.txt"
 					:  (T == setType.DEVELOPMENT) ? "data/presence_cat-target_validation.txt"
@@ -167,14 +167,19 @@ public class SVMClassifier {
 			
 			BufferedReader reader = new BufferedReader(new FileReader(presenceFile));
 
+			int countExmplsPos = 0;
 			String line = null;
 			boolean catOk = false;
 			while ( !catOk && (line = reader.readLine()) != null )
 				if (line.equals(categoryName)) {
 					String[] aux = reader.readLine().split("\t");
 
-					for (int presenceIdx = 0; presenceIdx < aux.length ; presenceIdx++ )
-						problem.y[presenceIdx] = (aux[presenceIdx].equals("1")) ? 1.0 : -1.0 ;					
+					for (int presenceIdx = 0; presenceIdx < aux.length ; presenceIdx++ ){
+						if (aux[presenceIdx].equals("1"))
+							countExmplsPos++;
+						problem.y[presenceIdx] = (aux[presenceIdx].equals("1")) ? 1.0 : -1.0 ;	
+					}
+										
 					catOk = true;
 				}
 			
@@ -182,6 +187,8 @@ public class SVMClassifier {
 			
 			if (!catOk)
 				throw new CategoryNotPresent(categoryName);
+			
+			return countExmplsPos;
 	}
 
 	
@@ -201,7 +208,7 @@ public class SVMClassifier {
 		
 		Pair<Pair<Float, Float>, Float> res = new Pair<Pair<Float, Float>, Float>(null,0.f);
 
-		svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, weight.first, weight.second, trainProblem,(double) 3.0 / (double) totNumOfFtrs, 1/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
+		svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, weight.first, weight.second, trainProblem,(double) 3.0 / (double) totNumOfFtrs, 5/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
 		Pair<MetricsResultSet, HashSet<Integer>> results = ParameterTester.computeMetrics(model, problemToTest);
 		MetricsResultSet metrics = results.first;
 	
@@ -230,7 +237,7 @@ public class SVMClassifier {
 		for (float ww = 1f; ww < 50f ; ww *= 51.1f) {
 			for (float w = 1f; w < 50f ; w *= 1.1f) {
 	
-				svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, w, ww, trainProblem,(double) 3.0 / (double) totNumOfFtrs , 0.2/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
+				svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, w, ww, trainProblem,(double) 3.0 / (double) totNumOfFtrs , 5/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
 				Pair<MetricsResultSet, HashSet<Integer>> results = ParameterTester.computeMetrics(model, problemToTest);
 				MetricsResultSet metrics = results.first;
 			
@@ -357,12 +364,16 @@ public class SVMClassifier {
 	}
 
 
-	public void setLabels(String categoryName) throws IOException {
+	public Triple<Integer, Integer, Integer> setLabels(String categoryName) throws IOException {
+		
+//		Triple<Integer, Integer, Integer> exemplesPosCountForCat = 
 		System.err.println("start labeling examples..");
-		setLabels(categoryName,setType.TRAINING);
-		setLabels(categoryName,setType.DEVELOPMENT);
-		setLabels(categoryName,setType.TEST);
+		int t = setLabels(categoryName,setType.TRAINING);
+		int d = setLabels(categoryName,setType.DEVELOPMENT);
+		int tt = setLabels(categoryName,setType.TEST);
 		System.err.println("end labeling examples..");
+		
+		return new Triple<Integer,Integer,Integer>(t, d , tt);
 		
 	}
 
@@ -472,6 +483,33 @@ public class SVMClassifier {
 			out.println();
 		}
 		reader.close();
+	}
+
+
+	public Pair<Pair<Float, Float>, Float> tuneWeights() throws IOException {
+		
+
+	
+			Pair<Pair<Float, Float>, Float> res = new Pair<Pair<Float, Float>, Float>(new Pair<Float, Float>(1f,1f),0.f);
+			HashSet<Integer> categoryIndexes= new HashSet<Integer>();
+
+			for (float ww = 1f; ww < 50f ; ww *= 51.1f) {
+				for (float w = 1f; w < 50f ; w *= 1.1f) {
+		
+					svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, w, ww, trainProblem,(double) 3.0 / (double) totNumOfFtrs , 1.2/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
+					float currF1 = ParameterTester.computeMetricsSingleCategory(model, develProblem);
+
+					if (currF1 > res.second ) { 
+						res.first.first = w;
+						res.first.second = ww;
+						res.second = currF1;
+					}
+		
+				}
+			}
+			return res;
+
+		
 	}
 
 }

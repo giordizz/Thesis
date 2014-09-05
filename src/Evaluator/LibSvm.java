@@ -1,5 +1,7 @@
 package it.giordizz.Thesis;
 
+import it.acubelab.batframework.metrics.Metrics;
+import it.acubelab.batframework.metrics.MetricsResultSet;
 import it.acubelab.batframework.utils.Pair;
 import it.giordizz.Thesis.SVMClassifier.setType;
 
@@ -9,6 +11,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -20,15 +23,10 @@ import libsvm.svm_problem;
 public class LibSvm {
 
 	
-	static void evaluate(setType setToTest, Vector<Pair<Float, Float>> weights, String featuresPrefixDir) throws Exception{
+static void evaluate(String featuresPrefixDir) throws Exception{
 		
 		
-		PrintWriter writer;
-		
-		if (setToTest== setType.DEVELOPMENT)
-			 writer = new PrintWriter(featuresPrefixDir + "_conf.txt", "UTF-8");
-		else
-			 writer = new PrintWriter(featuresPrefixDir + "_test.txt", "UTF-8");
+		PrintWriter writer= new PrintWriter(featuresPrefixDir + "_test.txt", "UTF-8");
 		
 		SVMClassifier S = new SVMClassifier();
 
@@ -40,42 +38,77 @@ public class LibSvm {
 		
 		ArrayList<Pair<String,HashSet<Integer>>> labelsPerCategory = new ArrayList<Pair<String,HashSet<Integer>>>(67);
 		
-		float avgF1 = 0.f;
-		float numOfTargetCategory = 0.f; 
+
+
 		String categoryName;
+		List<Pair<Float, Float>> bestWeights = new Vector<>();
+		ArrayList<String> categories = new ArrayList<String>();
+		int numOfTargetCategory=0;
+		ArrayList<Triple<Integer,Integer,Integer>> exemplesPosCountForSet = new ArrayList<Triple<Integer,Integer,Integer>>(67);
 		while ((categoryName = reader.readLine()) != null) {			
 			try {
-
-				S.setLabels(categoryName);
+				categories.add(categoryName);
+				exemplesPosCountForSet.add(S.setLabels(categoryName));
 				
-				System.err.println("TESTING..");
+				System.err.println("TUNING..");
 				Pair<Pair<Float, Float>, Float> res = null;
-				if (setToTest== setType.DEVELOPMENT){
-					Pair<Pair<Pair<Float, Float>, Float>, HashSet<Integer>> results = S.test(setToTest);
-
-						
-					res = results.first;
-//					labelsPerCategory.add(new Pair<String,HashSet<Integer>>(categoryName, results.second));
-				} else {
-					Pair<Pair<Pair<Float, Float>, Float>, HashSet<Integer>> results = S.test(setToTest, weights.get((int) numOfTargetCategory));
-					res = results.first;
-//					labelsPerCategory.add(new Pair<String,HashSet<Integer>>(categoryName, results.second));
+	
+				res = S.tuneWeights();
+//				labelsPerCategory.add(new Pair<String,HashSet<Integer>>(categoryName, results.second));
 				
-				}
 				
-					
-				numOfTargetCategory+=1.f;
-				avgF1+=res.second;
-				writer.printf("%s:\n\tW: %f\t%f\n\tF1: %f\n", categoryName, res.first.first, res.first.second, res.second);
-				System.err.println("**** Category number " + numOfTargetCategory + " computed ****");
+				bestWeights.add(res.first);
+				System.err.println("**** Category number " + ++numOfTargetCategory + " tuned ****");
 			} catch (Exception e) {
 				e.printStackTrace();
 				writer.println(e.getMessage());
 			}
-		}			
+		}
 		reader.close();
-		writer.println(">>>>>>>>>>>>>>>>>>>>>> Avarage F1: " + avgF1 / numOfTargetCategory + "  <<<<<<<<<<<<<<<<<<<<<<<");
 
+		List<HashSet<Integer>> output = new Vector<>();
+		List<HashSet<Integer>> goldStandard = new Vector<>();
+		
+		System.err.println("TESTING..");
+//		for (String cat: categories){
+		for (int catIdx = 0; catIdx < categories.size() ; catIdx++){
+	
+			S.setLabels(categories.get(catIdx));
+			Pair<Float, Float> bestWeightsForCat = bestWeights.get(catIdx);
+			svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, bestWeightsForCat.first, bestWeightsForCat.second, S.trainProblem,(double) 3.0 / (double) S.totNumOfFtrs, 1.2/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
+
+			Pair<HashSet<Integer>, HashSet<Integer>> outputandGoldForCat = ParameterTester.getOutputForCategory(model, S.testProblem);
+			output.add(outputandGoldForCat.first);
+			goldStandard.add(outputandGoldForCat.second);
+			System.err.println("**** Prediction for category " + (catIdx+1) + " completed ****");
+		}
+		MetricsResultSet results = new Metrics<Integer>().getResult(output, goldStandard, new IndexMatch());
+//		results.getMacroF1(); //macro f1
+//		results.getMicroF1(); // micro f1
+//		results.getF1s(i) //F1 per la categoria i
+//		results.getPrecisions(i) //Precision per la categoria i
+//		results.getRecall(i) //Recallper la categoria i
+		
+		for (int catIdx = 0; catIdx < categories.size() ; catIdx++){
+			writer.printf("%s:\n\tW: %f\t%f\n\tF1: %f\n\tP: %f\n\tR: %f\n\ttp: %d\n\tfp: %d\n\tfn: %d\n\texTraining: %d\n\texDevelopment: %d\n\texTest: %d\n",
+					categories.get(catIdx),
+					bestWeights.get(catIdx).first,
+					bestWeights.get(catIdx).second,
+					results.getF1s(catIdx),
+					results.getPrecisions(catIdx),
+					results.getRecalls(catIdx),
+					results.getTPs(catIdx),
+					results.getFPs(catIdx),
+					results.getFNs(catIdx),
+					exemplesPosCountForSet.get(catIdx).left,
+					exemplesPosCountForSet.get(catIdx).middle,
+					exemplesPosCountForSet.get(catIdx).right
+			);
+		}
+		
+		
+		writer.println(">>>>>>>>>>>>>>>>>>>>>> Macro F1: " + results.getMacroF1() + "  <<<<<<<<<<<<<<<<<<<<<<<");
+		writer.println(">>>>>>>>>>>>>>>>>>>>>> Micro F1: " + results.getMicroF1() + "  <<<<<<<<<<<<<<<<<<<<<<<");
 //		S.writeLabelsToFile(setToTest, labelsPerCategory);
 		
 		writer.close();
@@ -178,29 +211,9 @@ public class LibSvm {
 		
 
 		
-		Vector<Pair<Float, Float>> weights = new Vector<Pair<Float, Float>>();
-//		BufferedReader r = new BufferedReader(new FileReader("data/bestWeights.txt"));
-//		BufferedReader r = new BufferedReader(new FileReader("data/weights_entity+bolds.txt"));
-//		BufferedReader r = new BufferedReader(new FileReader("entity+entitySnippets+snippets+bolds_conf.txt"));
-////		String weight;
-//		int c= 67;
-//		while ((r .readLine()) != null) {
-//		
-//			String[] Ws = r .readLine().split(":")[1].split("\t");
-//			if (Ws.length==1)
-//				weights.add(new Pair<Float, Float>(Float.parseFloat(Ws[0]),1.f));
-//			else
-//				weights.add(new Pair<Float, Float>(Float.parseFloat(Ws[0]),Float.parseFloat(Ws[1])));
-//			r .readLine();
-//			
-//			if(--c==0)
-//				break;
-//		}
-//			
-//		r.close();
 		
-		evaluate(setType.DEVELOPMENT, null, args[0]);
-//		evaluate(setType.TEST, weights, args[0]);
+//		evaluate(setType.DEVELOPMENT, null, args[0]);
+		evaluate(args[0]);
 //		System.err.println(" ----------> " + weights.size());
 //		twoStageEvaluation(setType.TEST, weights, args[0]);
 //		twoStageEvaluation(setType.DEVELOPMENT, null, args[0]);
