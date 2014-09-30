@@ -9,25 +9,28 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.TreeSet;
 import java.util.Vector;
 
 import libsvm.svm_model;
 import libsvm.svm_parameter;
-import libsvm.svm_problem;
 
 
 public class LibSvm {
 
 	
-static void evaluate(String featuresPrefixDir) throws Exception{
+	static void evaluate(String featuresPrefixDir) throws Exception{
 		
 		
-		PrintWriter writer= new PrintWriter(featuresPrefixDir + "_test.txt", "UTF-8");
+		PrintWriter writer= new PrintWriter(featuresPrefixDir + "_train+test.txt", "UTF-8");
 		
+//		PrintWriter writer= new PrintWriter(featuresPrefixDir + "_train+dev_R(RBF).txt", "UTF-8");
+//		PrintWriter writer= new PrintWriter(featuresPrefixDir + "_dev+test_P(RBF).txt", "UTF-8");
+	
+//		PrintWriter writer= new PrintWriter(featuresPrefixDir + "_P_scambiati(RBF).txt", "UTF-8");
+	
 		SVMClassifier S = new SVMClassifier();
 
 		S.createSVMProblemsByFiles(featuresPrefixDir);
@@ -35,16 +38,17 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 
 		BufferedReader reader = new BufferedReader(new FileReader("data/CatTarget.txt"));
 
-		
-		ArrayList<Pair<String,HashSet<Integer>>> labelsPerCategory = new ArrayList<Pair<String,HashSet<Integer>>>(67);
-		
-
 
 		String categoryName;
 		List<Pair<Float, Float>> bestWeights = new Vector<>();
 		ArrayList<String> categories = new ArrayList<String>();
 		int numOfTargetCategory=0;
+		/** Esempi positivi per dataset, per categoria*/
 		ArrayList<Triple<Integer,Integer,Integer>> exemplesPosCountForSet = new ArrayList<Triple<Integer,Integer,Integer>>(67);
+		
+		/**
+		 * FASE DI TUNING
+		 */
 		while ((categoryName = reader.readLine()) != null) {			
 			try {
 				categories.add(categoryName);
@@ -53,10 +57,9 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 				System.err.println("TUNING..");
 				Pair<Pair<Float, Float>, Float> res = null;
 	
-				res = S.tuneWeights();
-//				labelsPerCategory.add(new Pair<String,HashSet<Integer>>(categoryName, results.second));
+				res = S.tuneWeights();				
 				
-				
+				/** W+ e W- per il classificaroe associato alla categoria corrente */
 				bestWeights.add(res.first);
 				System.err.println("**** Category number " + ++numOfTargetCategory + " tuned ****");
 			} catch (Exception e) {
@@ -66,11 +69,18 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 		}
 		reader.close();
 
+		/** Per ogni categoria C l'indice delle query etichettate con C */
+		ArrayList<Pair<String,HashSet<Integer>>> labelsPerCategory = new ArrayList<Pair<String,HashSet<Integer>>>(categories.size());
+		
 		List<HashSet<Integer>> output = new Vector<>();
 		List<HashSet<Integer>> goldStandard = new Vector<>();
 		
 		System.err.println("TESTING..");
-//		for (String cat: categories){
+
+		
+		/**
+		 * FASE DI TESTING
+		 */
 		for (int catIdx = 0; catIdx < categories.size() ; catIdx++){
 	
 			S.setLabels(categories.get(catIdx));
@@ -78,17 +88,29 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 			svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, bestWeightsForCat.first, bestWeightsForCat.second, S.trainProblem,(double) 3.0 / (double) S.totNumOfFtrs, 1.2/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
 
 			Pair<HashSet<Integer>, HashSet<Integer>> outputandGoldForCat = ParameterTester.getOutputForCategory(model, S.testProblem);
+//			Pair<HashSet<Integer>, HashSet<Integer>> outputandGoldForCat = ParameterTester.getOutputForCategory(model, S.develProblem);
+		
 			output.add(outputandGoldForCat.first);
 			goldStandard.add(outputandGoldForCat.second);
 			System.err.println("**** Prediction for category " + (catIdx+1) + " completed ****");
+			
+			labelsPerCategory.add(new Pair<String,HashSet<Integer>>(categories.get(catIdx), outputandGoldForCat.first));
+			
+//			Iterator<Integer> a = outputandGoldForCat.first.iterator();
+//			System.err.println("output");
+//			while (a.hasNext())
+//				System.err.print(a.next() + "\t");
+//			
+//			Iterator<Integer> b = outputandGoldForCat.second.iterator();
+//			System.err.println("\ngold");
+//			while (b.hasNext())
+//				System.err.print(b.next() + "\t");	
+//			System.err.println("\n");
+		
 		}
 		MetricsResultSet results = new Metrics<Integer>().getResult(output, goldStandard, new IndexMatch());
-//		results.getMacroF1(); //macro f1
-//		results.getMicroF1(); // micro f1
-//		results.getF1s(i) //F1 per la categoria i
-//		results.getPrecisions(i) //Precision per la categoria i
-//		results.getRecall(i) //Recallper la categoria i
 		
+	
 		for (int catIdx = 0; catIdx < categories.size() ; catIdx++){
 			writer.printf("%s:\n\tW: %f\t%f\n\tF1: %f\n\tP: %f\n\tR: %f\n\ttp: %d\n\tfp: %d\n\tfn: %d\n\texTraining: %d\n\texDevelopment: %d\n\texTest: %d\n",
 					categories.get(catIdx),
@@ -105,15 +127,33 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 					exemplesPosCountForSet.get(catIdx).right
 			);
 		}
+
+		float TN = S.testProblem.l * 67 - (results.getGlobalTp() + results.getGlobalFp() + results.getGlobalFn());
 		
-		
+		float acc = (float)(results.getGlobalTp() + TN) / (results.getGlobalTp() + results.getGlobalFp() + results.getGlobalFn() + TN);
+		float p= (float) results.getGlobalTp() / (results.getGlobalTp()+results.getGlobalFp());
+		float r= (float) results.getGlobalTp() / (results.getGlobalTp()+results.getGlobalFn());
+		float f1 = (2.0f*p*r)/(p+r);
 		writer.println(">>>>>>>>>>>>>>>>>>>>>> Macro F1: " + results.getMacroF1() + "  <<<<<<<<<<<<<<<<<<<<<<<");
 		writer.println(">>>>>>>>>>>>>>>>>>>>>> Micro F1: " + results.getMicroF1() + "  <<<<<<<<<<<<<<<<<<<<<<<");
-//		S.writeLabelsToFile(setToTest, labelsPerCategory);
+		writer.println(">>>>>>>>>>>>>>>>>>>>>> Accuracy: " + acc + "  <<<<<<<<<<<<<<<<<<<<<<<");
+		writer.println(">>>>>>>>>>>>>>>>>>>>>> F1: " + f1 + "  <<<<<<<<<<<<<<<<<<<<<<<");
+		writer.println(">>>>>>>>>>>>>>>>>>>>>> tp: " + results.getGlobalTp() + "  <<<<<<<<<<<<<<<<<<<<<<<");
+		writer.println(">>>>>>>>>>>>>>>>>>>>>> fp: " + results.getGlobalFp() + "  <<<<<<<<<<<<<<<<<<<<<<<");
+		writer.println(">>>>>>>>>>>>>>>>>>>>>> fn: " + results.getGlobalFn() + "  <<<<<<<<<<<<<<<<<<<<<<<");
+		S.writeLabelsToFile(setType.DEVELOPMENT, labelsPerCategory);
 		
 		writer.close();
 	}
 	
+
+	/**
+	 * Valutazione a due stadi: 67 regressori -> 67 classificatori
+	 * @param setToTest
+	 * @param weights
+	 * @param featuresPrefixDir
+	 * @throws Exception
+	 */
 	static void twoStageEvaluation(setType setToTest,Vector<Pair<Float, Float>> weights, String featuresPrefixDir) throws Exception{
 		
 		PrintWriter writer = new PrintWriter(featuresPrefixDir+ "_x", "UTF-8");
@@ -187,12 +227,8 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 				}
 			}			
 
-//			if (weights!=null) {
 				writer.println(">>>>>>>>>>>>>>>>>>>>>> Avarage F1: " + avgF1 / numOfTargetCategory + "  <<<<<<<<<<<<<<<<<<<<<<<");
-//				break;
-//			} else
-//				writer.println(">>>>>>>>>>>>>>>>>>>>>> Avarage F1 with W+= " + w + " : " + avgF1 / numOfTargetCategory + "  <<<<<<<<<<<<<<<<<<<<<<<");
-			
+
 //		}
 		
 		writer.close();
@@ -200,6 +236,7 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 	
 	
 	public static void main(String[] args) throws Exception {
+
 
 		if (args.length!=1) {
 			System.err.println("specify argument");
@@ -214,7 +251,7 @@ static void evaluate(String featuresPrefixDir) throws Exception{
 		
 //		evaluate(setType.DEVELOPMENT, null, args[0]);
 		evaluate(args[0]);
-//		System.err.println(" ----------> " + weights.size());
+
 //		twoStageEvaluation(setType.TEST, weights, args[0]);
 //		twoStageEvaluation(setType.DEVELOPMENT, null, args[0]);
 		

@@ -2,7 +2,6 @@ package it.giordizz.Thesis;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.TreeSet;
 import java.util.Vector;
 
 import libsvm.svm;
@@ -16,25 +15,38 @@ import it.acubelab.batframework.utils.Pair;
 public class ParameterTester {
 
 
-	
+	/**
+	 * Calcola F1 per il classificatore associato alla categoria target corrente.
+	 * @param model
+	 * @param testProblem
+	 * @return
+	 * @throws IOException
+	 */
 	public static float computeMetricsSingleCategory(svm_model model, svm_problem testProblem) throws IOException{
 		Pair<HashSet<Integer>, HashSet<Integer>> goldAndRes = getOutputForCategory(model, testProblem);
 		List<HashSet<Integer>> outputOrig = new Vector<>();
 		List<HashSet<Integer>> goldStandardOrig = new Vector<>();
 
-
-		goldStandardOrig.add(goldAndRes.first);
-		outputOrig.add(goldAndRes.second);
-
+		outputOrig.add(goldAndRes.first);
+		goldStandardOrig.add(goldAndRes.second);
+		
+//		ACCURACY
+//		MetricsResultSet res = new Metrics<Integer>().getResult(outputOrig, goldStandardOrig, new IndexMatch());		
+//		float TN = testProblem.l * 67 - (res.getTPs(0) + res.getFPs(0) + res.getFNs(0));
+//		return (float) (res.getTPs(0) + TN) / (res.getTPs(0) + res.getFPs(0) + res.getFNs(0) + TN);
+		
 		return new Metrics<Integer>().getResult(outputOrig, goldStandardOrig, new IndexMatch()).getF1s(0);
+
 	}
 
 
 		public static Pair<HashSet<Integer>, HashSet<Integer>> getOutputForCategory(svm_model model,
 				svm_problem testProblem) throws IOException {
 
-			HashSet<Integer> goldPairs = new HashSet<>();
+			
 			HashSet<Integer> resPairs = new HashSet<>();
+			HashSet<Integer> goldPairs = new HashSet<>();
+			
 
 			
 			for (int j = 0; j < testProblem.l; j++) {
@@ -47,7 +59,7 @@ public class ParameterTester {
 					resPairs.add(j);
 			}
 
-			return new Pair<HashSet<Integer>, HashSet<Integer>>(goldPairs, resPairs);
+			return new Pair<HashSet<Integer>, HashSet<Integer>>(resPairs, goldPairs);
 		}
 
 

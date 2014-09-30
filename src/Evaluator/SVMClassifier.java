@@ -2,9 +2,6 @@ package it.giordizz.Thesis;
 
 import it.acubelab.batframework.metrics.MetricsResultSet;
 import it.acubelab.batframework.utils.Pair;
-import it.giordizz.Thesis.SVMClassifier.setType;
-
-import java.beans.FeatureDescriptor;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -12,9 +9,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.TreeSet;
 import java.util.Vector;
 
 import libsvm.svm;
@@ -41,53 +36,33 @@ public class SVMClassifier {
 	
 	
 	String dir="";
-	/**
-	 * presenceCategoryPerQuery: array di n stringhe nell'alfabeto {"0","1"},
-	 * dove n e' il numero di query che compongono il set considerato (o training
-	 * o dev). L'i-esimo elemento dell'array e' "1" se la i-esima query del set e'
-	 * taggata con la categoria in esame, "0" altrimenti.
-	 */
-	boolean[] presenceCategoryPerQuery = null;
+
 	int totNumOfFtrs=-1;
 
 
 	/**
-	 * setType: specifica se i dati da raccogliere fanno parte del training o
-	 * del development set
+	 * setType: specifica se i dati da raccogliere fanno parte del training,
+	 * del development set o del test set.
 	 */
 	public enum setType {
 		TRAINING, DEVELOPMENT, TEST
 	}
 
-	/**
-	 * Raccoglie gli esempi dai file, inserendoli nel rispettivo gatherer a
-	 * seconda del parametro specificato.
-	 * <p/>
-	 * Nei file di tipo "results*" sono presenti tante righe quante sono le
-	 * query del rispettivo set; ogni riga del file identifica l'array di
-	 * features di una specifica query nel formato "f1,f2,...fn" dove n e'
-	 * attualmente 123.
-	 * <p/>
-	 * Nei file di tipo "presence_cat-target*" sono presenti 2 righe per ogni
-	 * categoria target (quindi in tutto ci sono 134 righe); La prima di queste
-	 * due righe identifica il nome della categoria, la seconda e', invece, nel
-	 * formato "B1	B2		BN" dove N e' la dimensione del rispettivo set; il
-	 * generico valore Bi e' 1 se la i-esima query del set e' taggata con la su
-	 * detta categoria, 0 altrimenti.
-	 * 
-	 * @param T
-	 *            permette di identificare se si desidera prelevare gli esempi
-	 *            dal training set o dal development set.
-	 * @throws Exception 
-	 */
 
+	/**
+	 * Raccoglie gli esempi (con le rispettive feature) e crea i problemi training e test (anche dev se c'è)
+	 * @param T indica quale dataset usare per creare il problema
+	 * @throws Exception
+	 */
 	public void gatherUnlabeledData(setType T) throws Exception {
+
+//		String featuresFile = (T == setType.TRAINING) ? "data/"+ dir +"results_training" + suffixByMode
+//				: (T == setType.DEVELOPMENT) ? "data/"+ dir +"results_validation" + suffixByMode :
+//					"data/"+ dir +"results_test" + suffixByMode ;
 
 		String featuresFile = (T == setType.TRAINING) ? "data/"+ dir +"results_training" + suffixByMode
 				: (T == setType.DEVELOPMENT) ? "data/"+ dir +"results_validation" + suffixByMode :
 					"data/"+ dir +"results_test" + suffixByMode ;
-
-
 
 		
 		BufferedReader reader = new BufferedReader(new FileReader(featuresFile));
@@ -140,7 +115,7 @@ public class SVMClassifier {
 			problem.x[i]=auxVector.elementAt(i);
 		
 		
-		
+		System.err.println("gathered " +problem.l  + " exemples for " + T.name().toLowerCase());
 		if (T == setType.TRAINING)			
 			trainProblem=problem;
 		else if (T == setType.DEVELOPMENT)	
@@ -152,13 +127,33 @@ public class SVMClassifier {
 
 	}
 	
-
+	/**
+	 * Viene invocato ogni volta che si vuole valutare un classificatore associato ad una particola categoria C. 
+	 * Al momento dell'invocazione si recuperano le label specifiche per la categoria C dal file delle etichette.
+	 * @param categoryName nome della categoria
+	 * @param T di quale problema vogliamo aggiornare le etichette 
+	 * @return numero esempi positivi per la categoria C
+	 * @throws IOException
+	 */
 	public int setLabels(String categoryName,setType T) throws IOException {
 
-			String presenceFile = (T == setType.TRAINING) ? "data/presence_cat-target_training.txt"
-					:  (T == setType.DEVELOPMENT) ? "data/presence_cat-target_validation.txt"
-							:  "data/presence_cat-target_test.txt";
+			String presenceFile = (T == setType.TRAINING) ? "data/presence_train+testVSdev/presence_cat-target_training.txt"
+					:  (T == setType.DEVELOPMENT) ? "data/presence_train+testVSdev/presence_cat-target_validation.txt"
+							:  "data/presence_train+testVSdev/presence_cat-target_test.txt";
 
+//			String presenceFile = (T == setType.TRAINING) ? "data/presence_trainVSdev+test/presence_cat-target_training.txt"
+//					:  (T == setType.DEVELOPMENT) ? "data/presence_trainVSdev+test/presence_cat-target_validation.txt"
+//							:  "data/presence_trainVSdev+test/presence_cat-target_test.txt";
+			
+//			String presenceFile = (T == setType.TRAINING) ? "data/presence_train+devVStest/presence_cat-target_training.txt"
+//					:  (T == setType.DEVELOPMENT) ? "data/presence_train+devVStest/presence_cat-target_validation.txt"
+//							:  "data/presence_train+devVStest/presence_cat-target_test.txt";
+			
+			
+//			String presenceFile = (T == setType.TRAINING) ? "data/presenceAll/presence_cat-target_training.txt"
+//					:  (T == setType.DEVELOPMENT) ? "data/presenceAll/presence_cat-target_validation.txt"
+//							:  "data/presenceAll/presence_cat-target_test.txt";
+		
 			svm_problem problem = (T == setType.TRAINING) ? trainProblem 
 					:  (T == setType.DEVELOPMENT) ? develProblem 
 							: testProblem;
@@ -289,45 +284,13 @@ public class SVMClassifier {
 		
 	}
 	
-//
-//	public SVMClassifier(int mode) {
-//
-//		
-//		switch (mode) {
-//			case 0: break;
-//			case 1: this.suffixByMode = "_path.txt";
-//					break;
-//			case 2: this.suffixByMode = "_path_range.txt";
-//					break;
-//			case 3: this.suffixByMode = "_range.txt";
-//		}
-//		
-//	}
-//
-//
-//	public SVMClassifier(int mode, int topK) { //TODO
-//		switch (mode) {
-//		case 0: break;
-//		case 1: this.suffixByMode = "_path.txt";
-//				break;
-//		case 2: this.suffixByMode = "_path_range.txt";
-//				break;
-//		case 3: this.suffixByMode = "_range.txt";
-//		
-//	
-//		}
-//		
-////		dir="NEWNEW8top" + topK + "/";
-//		dir="initialBestAll/";
-//	}
-
 
 	public void scaleProblems(){
 
 		Pair<double[], double[]> minsAndMaxs = LibSvmUtils.findRanges(trainProblem,totNumOfFtrs);
 	
 		LibSvmUtils.scaleProblem(trainProblem, minsAndMaxs.first, minsAndMaxs.second);
-		LibSvmUtils.scaleProblem(develProblem,  minsAndMaxs.first, minsAndMaxs.second);
+//		LibSvmUtils.scaleProblem(develProblem,  minsAndMaxs.first, minsAndMaxs.second);
 		LibSvmUtils.scaleProblem(testProblem,  minsAndMaxs.first, minsAndMaxs.second);
 	}
 	
@@ -343,20 +306,29 @@ public class SVMClassifier {
 			LibSvmUtils.scaleProblem(testProblem,  minsAndMaxs.first, minsAndMaxs.second);
 	}
 
+	/**
+	 * Raccoglie gli esempi da file (senza le etichette, le quali verranno associate per ciascuna categoria), crea i problemi SVM e li scala.
+	 * @param prefixDir prefisso della cartella contenente il file di feature.
+	 * @throws Exception
+	 */
 	public void createSVMProblemsByFiles(String prefixDir) throws Exception {
-		this.dir=prefixDir + "_Features/";
+		this.dir=prefixDir + "_Features_train+test/";
+		
+//		this.dir=prefixDir + "_Features_dev+test/";
+//		this.dir=prefixDir + "_Features_train+dev/";	
+//		this.dir=prefixDir + "_Features/";
 		
 		System.err.println("start gathering training examples..");
 		gatherUnlabeledData(setType.TRAINING);
 		System.err.println("-> training examples gathered! <-");
 		
-		System.err.println("start gathering development examples..");
-		gatherUnlabeledData(setType.DEVELOPMENT);		
-		System.err.println("->  development examples gathered! <-");
+//		System.err.println("start gathering development examples..");
+//		gatherUnlabeledData(setType.DEVELOPMENT);		
+//		System.err.println("->  development examples gathered! <-");
 		
 		System.err.println("start gathering test examples..");
 		gatherUnlabeledData(setType.TEST);		
-		System.err.println("->  development examples gathered! <-");
+		System.err.println("->  test examples gathered! <-");
 		
 		System.err.println("start scaling problems..");
 		scaleProblems();
@@ -369,19 +341,16 @@ public class SVMClassifier {
 //		Triple<Integer, Integer, Integer> exemplesPosCountForCat = 
 		System.err.println("start labeling examples..");
 		int t = setLabels(categoryName,setType.TRAINING);
-		int d = setLabels(categoryName,setType.DEVELOPMENT);
+//		int d = setLabels(categoryName,setType.DEVELOPMENT);
 		int tt = setLabels(categoryName,setType.TEST);
 		System.err.println("end labeling examples..");
 		
-		return new Triple<Integer,Integer,Integer>(t, d , tt);
+		return new Triple<Integer,Integer,Integer>(t, -1 , tt);
 		
 	}
 
 
-	public double[] getRegressorWeightsByCategory() {
-		return null;
-		//TODO
-	}
+
 
 
 	public double[] getRegressorWeightsByCategory(setType typeOfDataSet, svm_model model) {
@@ -467,11 +436,17 @@ public class SVMClassifier {
 		System.err.println("-> problems scaled! <-");
 	}
 
-
+	/**
+	 * Scrive le predizioni (etichette) su file
+	 * @param setToTest quale dataset è il test set
+	 * @param labelsPerCategory per ogni categoria C l'indice delle query etichettate con C
+	 * @throws IOException
+	 */
 	public void writeLabelsToFile(setType setToTest,
 			ArrayList<Pair<String, HashSet<Integer>>> labelsPerCategory) throws IOException {
 		
-		BufferedReader reader = new BufferedReader(new FileReader("data/finalOrder/" + setToTest.name().toLowerCase() + "FinalOrder.txt"));
+//		BufferedReader reader = new BufferedReader(new FileReader("data/finalOrder/" + setToTest.name().toLowerCase() + "FinalOrder.txt"));
+		BufferedReader reader = new BufferedReader(new FileReader("data/finalOrder/validationFinalOrder.txt"));
 		PrintWriter out = new PrintWriter(setToTest.name().toLowerCase() + "Labels");
 		String query;
 		for(int count=0; (query = reader.readLine()) != null; count++) {
@@ -482,29 +457,36 @@ public class SVMClassifier {
 			}
 			out.println();
 		}
+		out.close();
 		reader.close();
 	}
 
-
+	/**
+	 * Calcola i parametri ottimali considerando come funzione obiettivo quella che massimizza l'F1 per categoria. 
+	 * @return la coppia (pesiOttimaliSVM, bestF1)
+	 * @throws IOException
+	 */
 	public Pair<Pair<Float, Float>, Float> tuneWeights() throws IOException {
 		
 
 	
 			Pair<Pair<Float, Float>, Float> res = new Pair<Pair<Float, Float>, Float>(new Pair<Float, Float>(1f,1f),0.f);
-			HashSet<Integer> categoryIndexes= new HashSet<Integer>();
 
 			for (float ww = 1f; ww < 50f ; ww *= 51.1f) {
 				for (float w = 1f; w < 50f ; w *= 1.1f) {
-		
-					svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, w, ww, trainProblem,(double) 3.0 / (double) totNumOfFtrs , 1.2/* 2.0 / (double) totNumOfFtrs*//* gamma *//*, 1  C */);
-					float currF1 = ParameterTester.computeMetricsSingleCategory(model, develProblem);
-
-					if (currF1 > res.second ) { 
-						res.first.first = w;
-						res.first.second = ww;
-						res.second = currF1;
-					}
-		
+					float C=1.2f ;
+//					for (float C=0.7f ; C < 1.5f ; C+= 0.2f){
+						svm_model model = SupportSVM.trainModel(svm_parameter.C_SVC, w, ww, trainProblem, (double) 3.0 / (double) totNumOfFtrs, C);
+						float currF1 = ParameterTester.computeMetricsSingleCategory(model, trainProblem);
+	//					float currF1 = ParameterTester.computeMetricsSingleCategory(model, develProblem);
+	//					float currF1 = ParameterTester.computeMetricsSingleCategory(model, testProblem);
+						
+						if (currF1 > res.second ) { 
+							res.first.first = w;
+							res.first.second = ww;
+							res.second = currF1;
+						}
+//					}
 				}
 			}
 			return res;
